@@ -124,7 +124,6 @@ export default function Home() {
                        note.category === 'Work' ? 'work' :
                        note.category === 'Personal' ? 'personal' : 'general', // Migration from old category system
             pinned: note.pinned || false,
-            folderId: note.folderId || undefined,
             versions: note.versions || [],
             createdAt: new Date(note.createdAt),
             updatedAt: new Date(note.updatedAt),
@@ -220,22 +219,23 @@ export default function Home() {
   };
 
   const deleteNote = (id: string) => {
-    setNotes(prev => {
-      const newNotes = prev.filter(note => note.id !== id);
-      const newActiveNote = activeNote?.id === id ? (newNotes.length > 0 ? newNotes[0] : null) : activeNote;
-      setActiveNote(newActiveNote);
-      return newNotes;
-    });
+    setNotes(prev => prev.filter(note => note.id !== id));
+    
+    // If we're deleting the active note, select the first remaining note
+    if (activeNote?.id === id) {
+      const remainingNotes = notes.filter(note => note.id !== id);
+      setActiveNote(remainingNotes.length > 0 ? remainingNotes[0] : null);
+    }
   };
 
-  const selectNote = useCallback((id: string) => {
+  const selectNote = (id: string) => {
     setActiveNote(notes.find(note => note.id === id) || null);
     // Track recently accessed notes
     setRecentNotes(prev => {
       const filtered = prev.filter(noteId => noteId !== id);
       return [id, ...filtered].slice(0, 5); // Keep only 5 most recent
     });
-  }, [notes]);
+  };
 
   const filteredNotes = notes
     .filter(note => {
