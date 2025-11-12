@@ -11,6 +11,7 @@
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
     "@tiptap/extension-code-block": "^3.10.5",
+    "@tiptap/extension-code-block-lowlight": "^3.10.5",
     "@tiptap/extension-color": "^3.10.5",
     "@tiptap/extension-highlight": "^3.10.5",
     "@tiptap/extension-image": "^3.10.5",
@@ -31,6 +32,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@uiw/react-md-editor": "^4.0.8",
     "better-sqlite3": "^12.4.1",
+    "date-fns": "^4.1.0",
     "lowlight": "^3.3.0",
     "next": "16.0.1",
     "react": "19.2.0",

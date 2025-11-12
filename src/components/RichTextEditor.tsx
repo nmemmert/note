@@ -10,6 +10,7 @@ import { TextAlign } from '@tiptap/extension-text-align';
 import { useCallback, useState, useEffect } from 'react';
 import MarkdownEditor from './MarkdownEditor';
 import { CodeBlock } from '@tiptap/extension-code-block';
+import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableHeader } from '@tiptap/extension-table-header';
@@ -22,6 +23,8 @@ import MediaInserter from './MediaInserter';
 import { CollapsibleSection } from './CollapsibleSection';
 import { Hashtag } from './Hashtag';
 import Underline from '@tiptap/extension-underline';
+import { common, createLowlight } from 'lowlight';
+import { NoteLink } from './NoteLink';
 
 // Global function to update note tags
 declare global {
@@ -32,9 +35,31 @@ interface RichTextEditorProps {
   content: string;
   onChange: (content: string) => void;
   placeholder?: string;
+  notebookId?: string;
+  notebooks?: Array<{ id: string; name: string; icon: string }>;
+  onNotebookChange?: (notebookId: string) => void;
+  tags?: string[];
+  onTagsChange?: (tags: string[]) => void;
+  dueDate?: string;
+  onDueDateChange?: (dueDate: string) => void;
+  completed?: boolean;
+  onCompletedChange?: (completed: boolean) => void;
 }
 
-const RichTextEditor = ({ content, onChange, placeholder = "Start writing..." }: RichTextEditorProps) => {
+const RichTextEditor = ({ 
+  content, 
+  onChange, 
+  placeholder = "Start writing...", 
+  notebookId,
+  notebooks = [],
+  onNotebookChange,
+  tags = [],
+  onTagsChange,
+  dueDate,
+  onDueDateChange,
+  completed = false,
+  onCompletedChange
+}: RichTextEditorProps) => {
   const [isMarkdownMode, setIsMarkdownMode] = useState(false);
   const [showMediaInserter, setShowMediaInserter] = useState(false);
 
@@ -55,7 +80,9 @@ const RichTextEditor = ({ content, onChange, placeholder = "Start writing..." }:
         types: ['heading', 'paragraph'],
       }),
       Underline,
-      CodeBlock,
+      CodeBlockLowlight.configure({
+        lowlight: createLowlight(common),
+      }),
       Table.configure({
         resizable: true,
       }),
@@ -75,6 +102,12 @@ const RichTextEditor = ({ content, onChange, placeholder = "Start writing..." }:
       }),
       CollapsibleSection,
       Hashtag,
+      NoteLink.configure({
+        onNoteLinkClick: (noteTitle) => {
+          // Handle note link clicks - this could open the linked note
+          console.log('Note link clicked:', noteTitle);
+        },
+      }),
     ],
     content,
     immediatelyRender: false,
@@ -385,11 +418,84 @@ const RichTextEditor = ({ content, onChange, placeholder = "Start writing..." }:
           >
             📁
           </button>
+
+          {/* Media Insertion */}
+          <div className="w-px h-6 bg-gray-300 dark:bg-gray-500 mx-1"></div>
+          <button
+            onClick={() => setShowMediaInserter(true)}
+            className="px-3 py-1 rounded text-sm font-medium bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-500"
+          >
+            📎
+          </button>
+        </div>
+
+        {/* Note Properties Toolbar */}
+        <div className="bg-gray-50 border-b border-gray-300 p-3 flex flex-wrap gap-3 items-center">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Notebook:</label>
+            <select
+              value={notebookId || 'general'}
+              onChange={(e) => onNotebookChange?.(e.target.value)}
+              className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white text-gray-900"
+            >
+              {notebooks.map(notebook => (
+                <option key={notebook.id} value={notebook.id}>
+                  {notebook.icon} {notebook.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Tags:</label>
+            <input
+              type="text"
+              value={tags?.join(', ') || ''}
+              onChange={(e) => {
+                const newTags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag);
+                onTagsChange?.(newTags);
+              }}
+              placeholder="Add tags..."
+              className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white text-gray-900 min-w-[150px]"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Due Date:</label>
+            <input
+              type="date"
+              value={dueDate || ''}
+              onChange={(e) => onDueDateChange?.(e.target.value)}
+              className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white text-gray-900"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="completed-toolbar"
+              checked={completed || false}
+              onChange={(e) => onCompletedChange?.(e.target.checked)}
+              className="rounded"
+            />
+            <label htmlFor="completed-toolbar" className="text-sm font-medium text-gray-700">Completed</label>
+          </div>
         </div>
 
         {/* Editor Content */}
         <EditorContent editor={editor} className="min-h-[300px] bg-white" />
       </div>
+
+      {/* Media Inserter Modal */}
+      {showMediaInserter && (
+        <MediaInserter
+          isOpen={showMediaInserter}
+          onInsertImage={handleInsertImage}
+          onInsertLink={handleInsertLink}
+          onInsertFile={handleInsertFile}
+          onClose={() => setShowMediaInserter(false)}
+        />
+      )}
     </div>
   );
 };

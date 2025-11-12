@@ -5,6 +5,10 @@ import RichTextEditor from '../components/RichTextEditor';
 import TemplateSelector from '../components/TemplateSelector';
 import WebClipper from '../components/WebClipper';
 import ExportDialog from '../components/ExportDialog';
+import UpNoteImporter from '../components/UpNoteImporter';
+import { TableOfContents } from '../components/TableOfContents';
+import { CalendarView } from '../components/CalendarView';
+import { BackupDialog } from '../components/BackupDialog';
 
 // Global function to update note tags
 declare global {
@@ -21,6 +25,8 @@ interface Note {
   updatedAt: Date;
   pinned?: boolean;
   versions?: NoteVersion[];
+  dueDate?: string; // For task management
+  completed?: boolean; // For task completion status
 }
 
 interface NoteVersion {
@@ -60,6 +66,20 @@ export default function Home() {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showWebClipper, setShowWebClipper] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showUpNoteImporter, setShowUpNoteImporter] = useState(false);
+  const [searchFilters, setSearchFilters] = useState({
+    dateFrom: '',
+    dateTo: '',
+    hasTasks: false,
+    completed: 'all', // 'all', 'completed', 'incomplete'
+    contentType: 'all', // 'all', 'text', 'images', 'links'
+  });
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showTableOfContents, setShowTableOfContents] = useState(false);
+  const [showBackupDialog, setShowBackupDialog] = useState(false);
+  const [showSidebarMenu, setShowSidebarMenu] = useState(false);
 
   // Load notes and folders from localStorage on mount
   useEffect(() => {
@@ -243,7 +263,20 @@ export default function Home() {
                            note.content.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesNotebook = selectedNotebook === 'All' || note.notebookId === selectedNotebook;
       const matchesTag = selectedTag === 'All' || note.tags.includes(selectedTag);
-      return matchesSearch && matchesNotebook && matchesTag;
+      
+      // Advanced filters
+      const matchesDateFrom = !searchFilters.dateFrom || new Date(note.createdAt) >= new Date(searchFilters.dateFrom);
+      const matchesDateTo = !searchFilters.dateTo || new Date(note.createdAt) <= new Date(searchFilters.dateTo);
+      const matchesTasks = !searchFilters.hasTasks || (note.dueDate || note.content.includes('data-type="taskItem"'));
+      const matchesCompleted = searchFilters.completed === 'all' || 
+                              (searchFilters.completed === 'completed' && note.completed) ||
+                              (searchFilters.completed === 'incomplete' && !note.completed);
+      const matchesContentType = searchFilters.contentType === 'all' ||
+                                (searchFilters.contentType === 'images' && note.content.includes('<img')) ||
+                                (searchFilters.contentType === 'links' && note.content.includes('<a href')) ||
+                                (searchFilters.contentType === 'text' && !note.content.includes('<img') && !note.content.includes('<a href'));
+      
+      return matchesSearch && matchesNotebook && matchesTag && matchesDateFrom && matchesDateTo && matchesTasks && matchesCompleted && matchesContentType;
     })
     .sort((a, b) => {
       // Pinned notes come first
@@ -316,6 +349,140 @@ export default function Home() {
     createNewNote(clippedContent);
   };
 
+  const handleUpNoteImport = (importedNotes: Array<{
+    title: string;
+    content: string;
+    tags: string[];
+    notebook?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+  }>) => {
+    const notesToAdd = importedNotes.map(importedNote => {
+      // Find or create notebook
+      let notebookId = 'general';
+      if (importedNote.notebook) {
+        let existingNotebook = notebooks.find(nb => 
+          nb.name.toLowerCase() === importedNote.notebook!.toLowerCase()
+        );
+        
+        if (!existingNotebook) {
+          // Create new notebook for imported notes
+          const newNotebook: Notebook = {
+            id: Date.now().toString() + Math.random(),
+            name: importedNote.notebook,
+            description: `Imported from UpNote`,
+            color: '#8b5cf6',
+            icon: '📂',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          setNotebooks(prev => [...prev, newNotebook]);
+          notebookId = newNotebook.id;
+        } else {
+          notebookId = existingNotebook.id;
+        }
+      }
+
+      const note: Note = {
+        id: Date.now().toString() + Math.random(),
+        title: importedNote.title || 'Imported Note',
+        content: importedNote.content || '',
+        tags: importedNote.tags || [],
+        notebookId,
+        pinned: false,
+        createdAt: importedNote.createdAt || new Date(),
+        updatedAt: importedNote.updatedAt || new Date(),
+        versions: [],
+      };
+      
+      return note;
+    });
+
+    setNotes(prev => [...notesToAdd, ...prev]);
+    
+    // Select the first imported note
+    if (notesToAdd.length > 0) {
+      setActiveNote(notesToAdd[0]);
+    }
+    
+    setShowUpNoteImporter(false);
+  };
+
+  const handleBackup = () => {
+    const backupData = {
+      notes,
+      notebooks,
+      exportDate: new Date().toISOString(),
+      version: '1.0',
+    };
+    
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `notemaster-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleRestore = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const backupData = JSON.parse(e.target?.result as string);
+        
+        if (backupData.notes && backupData.notebooks) {
+          // Restore notes with proper date parsing
+          const restoredNotes = backupData.notes.map((note: any) => ({
+            ...note,
+            createdAt: new Date(note.createdAt),
+            updatedAt: new Date(note.updatedAt),
+            versions: note.versions?.map((version: any) => ({
+              ...version,
+              timestamp: new Date(version.timestamp),
+            })) || [],
+          }));
+          
+          // Restore notebooks with proper date parsing
+          const restoredNotebooks = backupData.notebooks.map((notebook: any) => ({
+            ...notebook,
+            createdAt: new Date(notebook.createdAt),
+            updatedAt: new Date(notebook.updatedAt),
+          }));
+          
+          setNotes(restoredNotes);
+          setNotebooks(restoredNotebooks);
+          
+          if (restoredNotes.length > 0) {
+            setActiveNote(restoredNotes[0]);
+          }
+          
+          alert('Backup restored successfully!');
+        } else {
+          alert('Invalid backup file format.');
+        }
+      } catch (error) {
+        alert('Failed to restore backup. Please check the file format.');
+        console.error('Restore error:', error);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Close sidebar menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showSidebarMenu && !(event.target as Element).closest('.sidebar-menu')) {
+        setShowSidebarMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSidebarMenu]);
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
@@ -324,32 +491,96 @@ export default function Home() {
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-semibold text-gray-900">NoteMaster</h1>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-1 justify-end">
+              <div className="relative sidebar-menu">
               <button
-                onClick={() => setShowQuickAccess(!showQuickAccess)}
-                className={`p-2 rounded-lg transition-colors ${
-                  showQuickAccess
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-                title="Quick Access"
-              >
-                ⚡
-              </button>
-              <button
-                onClick={() => setShowWebClipper(true)}
-                className="p-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
-                title="Web Clipper"
-              >
-                📎
-              </button>
-              <button
-                onClick={() => setShowNewNotebookDialog(true)}
-                className="p-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
-                title="New Notebook"
-              >
-                📚
-              </button>
+                  onClick={() => setShowSidebarMenu(!showSidebarMenu)}
+                  className="p-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                  title="Menu"
+                >
+                  ☰
+                </button>
+                
+                {showSidebarMenu && (
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setShowQuickAccess(!showQuickAccess);
+                          setShowSidebarMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <span>⚡</span> Quick Access
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowWebClipper(true);
+                          setShowSidebarMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <span>📎</span> Web Clipper
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowUpNoteImporter(true);
+                          setShowSidebarMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <span>📥</span> Import from UpNote
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowNewNotebookDialog(true);
+                          setShowSidebarMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <span>📚</span> New Notebook
+                      </button>
+                      <div className="border-t border-gray-100 my-1"></div>
+                      <button
+                        onClick={() => {
+                          setShowAdvancedSearch(!showAdvancedSearch);
+                          setShowSidebarMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <span>🔍</span> Advanced Search
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCalendar(!showCalendar);
+                          setShowSidebarMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <span>📅</span> Calendar View
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowTableOfContents(!showTableOfContents);
+                          setShowSidebarMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <span>📋</span> Table of Contents
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowBackupDialog(true);
+                          setShowSidebarMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <span>💾</span> Backup & Restore
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <button
@@ -366,6 +597,57 @@ export default function Home() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
             />
+            {showAdvancedSearch && (
+              <div className="mt-2 p-3 bg-gray-50 rounded-lg border">
+                <h4 className="font-medium mb-2">Advanced Filters</h4>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      placeholder="From date"
+                      value={searchFilters.dateFrom}
+                      onChange={(e) => setSearchFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+                      className="px-2 py-1 text-sm border border-gray-300 rounded"
+                    />
+                    <input
+                      type="date"
+                      placeholder="To date"
+                      value={searchFilters.dateTo}
+                      onChange={(e) => setSearchFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+                      className="px-2 py-1 text-sm border border-gray-300 rounded"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="hasTasks"
+                      checked={searchFilters.hasTasks}
+                      onChange={(e) => setSearchFilters(prev => ({ ...prev, hasTasks: e.target.checked }))}
+                    />
+                    <label htmlFor="hasTasks" className="text-sm">Has tasks</label>
+                  </div>
+                  <select
+                    value={searchFilters.completed}
+                    onChange={(e) => setSearchFilters(prev => ({ ...prev, completed: e.target.value }))}
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                  >
+                    <option value="all">All tasks</option>
+                    <option value="completed">Completed</option>
+                    <option value="incomplete">Incomplete</option>
+                  </select>
+                  <select
+                    value={searchFilters.contentType}
+                    onChange={(e) => setSearchFilters(prev => ({ ...prev, contentType: e.target.value }))}
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                  >
+                    <option value="all">All content</option>
+                    <option value="text">Text only</option>
+                    <option value="images">With images</option>
+                    <option value="links">With links</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
           <div className="mt-4 space-y-2">
             <div>
@@ -539,35 +821,6 @@ export default function Home() {
                 className="text-2xl font-semibold text-gray-900 bg-transparent border-none outline-none w-full mb-2"
                 placeholder="Note title..."
               />
-              <div className="flex flex-wrap gap-4 items-center mb-2">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Notebook</label>
-                  <select
-                    value={activeNote.notebookId || 'general'}
-                    onChange={(e) => updateNote(activeNote.id, { notebookId: e.target.value })}
-                    className="w-full px-3 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
-                  >
-                    {notebooks.map(notebook => (
-                      <option key={notebook.id} value={notebook.id}>
-                        {notebook.icon} {notebook.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tags (comma-separated)</label>
-                  <input
-                    type="text"
-                    value={activeNote.tags?.join(', ') || ''}
-                    onChange={(e) => {
-                      const tags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag);
-                      updateNote(activeNote.id, { tags });
-                    }}
-                    placeholder="Add tags..."
-                    className="w-full px-3 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
-                  />
-                </div>
-              </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500 dark:text-gray-400">
                   Last updated: {activeNote.updatedAt.toLocaleString()}
@@ -598,12 +851,46 @@ export default function Home() {
             </div>
 
             {/* Note Editor */}
-            <div className="flex-1 p-4 bg-white">
-              <RichTextEditor
-                content={activeNote.content}
-                onChange={(content) => updateNote(activeNote.id, { content })}
-                placeholder="Start writing your note..."
-              />
+            <div className="flex-1 flex">
+              <div className={`p-4 bg-white ${showCalendar || showTableOfContents ? 'flex-1' : 'w-full'}`}>
+                <RichTextEditor
+                  content={activeNote.content}
+                  onChange={(content) => updateNote(activeNote.id, { content })}
+                  placeholder="Start writing your note..."
+                  notebookId={activeNote.notebookId}
+                  notebooks={notebooks}
+                  onNotebookChange={(notebookId) => updateNote(activeNote.id, { notebookId })}
+                  tags={activeNote.tags}
+                  onTagsChange={(tags) => updateNote(activeNote.id, { tags })}
+                  dueDate={activeNote.dueDate}
+                  onDueDateChange={(dueDate) => updateNote(activeNote.id, { dueDate })}
+                  completed={activeNote.completed}
+                  onCompletedChange={(completed) => updateNote(activeNote.id, { completed })}
+                />
+              </div>
+              
+              {/* Calendar View */}
+              {showCalendar && (
+                <div className="w-80 border-l border-gray-200 p-4 bg-white">
+                  <CalendarView
+                    selectedDate={selectedDate || undefined}
+                    onDateSelect={setSelectedDate}
+                    notes={notes.map(note => ({
+                      id: note.id,
+                      title: note.title,
+                      createdAt: note.createdAt.toISOString(),
+                      dueDate: note.dueDate,
+                    }))}
+                  />
+                </div>
+              )}
+              
+              {/* Table of Contents */}
+              {showTableOfContents && (
+                <div className="w-64 border-l border-gray-200 p-4 bg-white">
+                  <div>Table of Contents will be implemented with editor integration</div>
+                </div>
+              )}
             </div>
           </>
         ) : (
@@ -706,6 +993,12 @@ export default function Home() {
         note={activeNote}
       />
 
+      <UpNoteImporter
+        isOpen={showUpNoteImporter}
+        onClose={() => setShowUpNoteImporter(false)}
+        onImport={handleUpNoteImport}
+      />
+
       <TemplateSelector
         isOpen={showTemplateSelector}
         onClose={() => setShowTemplateSelector(false)}
@@ -805,6 +1098,13 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      <BackupDialog
+        isOpen={showBackupDialog}
+        onClose={() => setShowBackupDialog(false)}
+        onBackup={handleBackup}
+        onRestore={handleRestore}
+      />
     </div>
   );
 }
