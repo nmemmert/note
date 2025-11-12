@@ -1252,7 +1252,7 @@ export default function Home() {
 
             {/* Note Editor */}
             <div className="flex-1 flex overflow-hidden">
-              <div className={`p-6 bg-white overflow-y-auto ${showCalendar || showTableOfContents ? 'flex-1' : 'w-full'} ${distractionFreeMode ? 'max-w-4xl mx-auto' : ''}`}>
+              <div className={`p-6 bg-white dark:bg-gray-900 overflow-y-auto ${showCalendar || showTableOfContents ? 'flex-1' : 'w-full'} ${distractionFreeMode ? 'max-w-4xl mx-auto' : ''}`}>
                 <RichTextEditor
                   content={activeNote.content}
                   onChange={(content) => updateNote(activeNote.id, { content })}
