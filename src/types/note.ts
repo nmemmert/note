@@ -16,12 +16,12 @@ export interface Note {
 
 export interface NoteVersion {
   id: string;
-  timestamp?: Date;
-  createdAt?: Date;
-  title?: string;
+  timestamp: Date;
+  title: string;
   content: string;
-  tags?: string[];
+  tags: string[];
   notebookId?: string;
+  createdAt?: Date;
 }
 
 export interface Notebook {
