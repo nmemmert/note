@@ -31,6 +31,7 @@ import UserSettings from '../components/UserSettings';
 import RelatedNotes from '../components/RelatedNotes';
 import WritingSuggestions from '../components/WritingSuggestions';
 import AutoSummary from '../components/AutoSummary';
+import HelpCenter from '../components/HelpCenter';
 
 // Global function to update note tags
 declare global {
@@ -106,6 +107,7 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showTableOfContents, setShowTableOfContents] = useState(false);
   const [showBackupDialog, setShowBackupDialog] = useState(false);
+  const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; noteId?: string } | null>(null);
@@ -449,11 +451,24 @@ export default function Home() {
       if (e.key === 'Escape' && showCommandPalette) {
         setShowCommandPalette(false);
       }
+      // ?: Open help center
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        // Don't trigger if user is typing in an input/textarea
+        const target = e.target as HTMLElement;
+        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA' && !target.isContentEditable) {
+          e.preventDefault();
+          setShowHelpCenter(true);
+        }
+      }
+      // Escape: Close help center
+      if (e.key === 'Escape' && showHelpCenter) {
+        setShowHelpCenter(false);
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [distractionFreeMode, showCommandPalette, activeNote]);
+  }, [distractionFreeMode, showCommandPalette, activeNote, showHelpCenter]);
 
   // Calculate word count
   useEffect(() => {
@@ -903,6 +918,13 @@ export default function Home() {
                 title="Split View"
               >
                 📑
+              </button>
+              <button
+                onClick={() => setShowHelpCenter(true)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all text-gray-700"
+                title="Help Center (Press ?)"
+              >
+                ❓
               </button>
 
               {/* User Menu */}
@@ -1562,6 +1584,10 @@ export default function Home() {
         fontSettings={fontSettings}
         onFontSettingsChange={setFontSettings}
       />
+
+      {showHelpCenter && (
+        <HelpCenter onClose={() => setShowHelpCenter(false)} />
+      )}
       </div>
     </div>
     </>
