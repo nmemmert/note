@@ -175,11 +175,42 @@ export function applyTheme(themeId: string) {
   if (!theme) return;
 
   const root = document.documentElement;
+  
+  // Set CSS variables
   Object.entries(theme.colors).forEach(([key, value]) => {
     root.style.setProperty(`--color-${key}`, value);
   });
 
-  // Update body background
+  // Remove all existing theme classes
+  document.body.classList.remove('theme-light', 'theme-dark', 'theme-nord', 'theme-solarized', 'theme-dracula', 'theme-monokai');
+  
+  // Add new theme class
+  document.body.classList.add(`theme-${themeId}`);
+
+  // Update body and root background
   document.body.style.backgroundColor = theme.colors.background;
   document.body.style.color = theme.colors.text;
+  root.style.backgroundColor = theme.colors.background;
+  root.style.color = theme.colors.text;
+  
+  // Apply theme to main app container
+  const appContainer = document.getElementById('__next');
+  if (appContainer) {
+    appContainer.style.backgroundColor = theme.colors.background;
+    appContainer.style.color = theme.colors.text;
+  }
+  
+  // Force repaint for all major elements
+  const whiteBgs = document.querySelectorAll('.bg-white');
+  whiteBgs.forEach(el => {
+    if (el instanceof HTMLElement) {
+      el.style.backgroundColor = theme.colors.surface;
+    }
+  });
+  
+  // Log for debugging
+  console.log('🎨 Theme applied:', themeId);
+  console.log('📦 Theme colors:', theme.colors);
+  console.log('✅ Body classes:', document.body.className);
+  console.log('🎯 Body background:', document.body.style.backgroundColor);
 }

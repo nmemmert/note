@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import RichTextEditor from '../components/RichTextEditor';
 import TemplateSelector from '../components/TemplateSelector';
 import WebClipper from '../components/WebClipper';
@@ -23,6 +25,9 @@ import TemplateLibrary from '../components/TemplateLibrary';
 import FavoritesView from '../components/FavoritesView';
 import ArchiveView from '../components/ArchiveView';
 import SmartFolders from '../components/SmartFolders';
+import FontSettings from '../components/FontSettings';
+import SplitView from '../components/SplitView';
+import UserSettings from '../components/UserSettings';
 
 // Global function to update note tags
 declare global {
@@ -66,6 +71,8 @@ interface Notebook {
 }
 
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [notes, setNotes] = useState<Note[]>([]);
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [activeNote, setActiveNote] = useState<Note | null>(null);
@@ -115,6 +122,15 @@ export default function Home() {
   const [showFavorites, setShowFavorites] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [showSmartFolders, setShowSmartFolders] = useState(false);
+  const [showFontSettings, setShowFontSettings] = useState(false);
+  const [showSplitView, setShowSplitView] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showUserSettings, setShowUserSettings] = useState(false);
+  const [fontSettings, setFontSettings] = useState({
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontSize: 16,
+    lineHeight: 1.6,
+  });
 
   // Show toast helper
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
@@ -130,161 +146,153 @@ export default function Home() {
 
   // Handle theme change
   const handleThemeChange = (themeId: string) => {
+    console.log('🔄 handleThemeChange called with:', themeId);
     setCurrentTheme(themeId);
     applyTheme(themeId);
     localStorage.setItem('theme', themeId);
     showToast(`Theme changed to ${themeId}`, 'success');
+    console.log('💾 Theme saved to localStorage');
   };
 
-  // Load notes and folders from localStorage on mount
+  // Load notes and notebooks from database
   useEffect(() => {
-    const initializeData = () => {
-      const savedNotes = localStorage.getItem('notes');
-      const savedNotebooks = localStorage.getItem('notebooks');
-      
-      // Initialize default notebooks if none exist
-      let initialNotebooks: Notebook[] = [];
-      if (savedNotebooks) {
-        try {
-          initialNotebooks = JSON.parse(savedNotebooks).map((notebook: any) => ({
+    const loadDataFromDatabase = async () => {
+      if (!session?.user?.id) {
+        console.log('No session, skipping database load');
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        
+        // Load notebooks
+        const notebooksRes = await fetch('/api/notebooks');
+        if (notebooksRes.ok) {
+          const { notebooks: dbNotebooks } = await notebooksRes.json();
+          const transformedNotebooks = dbNotebooks.map((notebook: any) => ({
             ...notebook,
             createdAt: new Date(notebook.createdAt),
             updatedAt: new Date(notebook.updatedAt),
           }));
-        } catch (error) {
-          console.error('Failed to parse saved notebooks:', error);
+          setNotebooks(transformedNotebooks);
         }
-      }
 
-      // Create default notebooks if none exist
-      if (initialNotebooks.length === 0) {
-        initialNotebooks = [
-          {
-            id: 'general',
-            name: 'General',
-            description: 'General notes and ideas',
-            color: '#6b7280',
-            icon: '📓',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            id: 'work',
-            name: 'Work',
-            description: 'Work-related notes and tasks',
-            color: '#3b82f6',
-            icon: '💼',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            id: 'personal',
-            name: 'Personal',
-            description: 'Personal notes and thoughts',
-            color: '#10b981',
-            icon: '🏠',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ];
-      }
-      setNotebooks(initialNotebooks);
-
-      if (savedNotes) {
-        try {
-          const parsedNotes: Note[] = JSON.parse(savedNotes).map((note: any) => ({
+        // Load notes
+        const notesRes = await fetch('/api/notes');
+        if (notesRes.ok) {
+          const { notes: dbNotes } = await notesRes.json();
+          const transformedNotes = dbNotes.map((note: any) => ({
             ...note,
             tags: note.tags || [],
-            notebookId: note.notebookId || note.category === 'General' ? 'general' : 
-                       note.category === 'Work' ? 'work' :
-                       note.category === 'Personal' ? 'personal' : 'general', // Migration from old category system
-            pinned: note.pinned || false,
-            versions: note.versions || [],
+            versions: [],
             createdAt: new Date(note.createdAt),
             updatedAt: new Date(note.updatedAt),
           }));
-          return parsedNotes;
-        } catch (error) {
-          console.error('Failed to parse saved notes:', error);
+          setNotes(transformedNotes);
+          if (transformedNotes.length > 0) {
+            setActiveNote(transformedNotes[0]);
+          }
         }
+      } catch (error) {
+        console.error('Failed to load data from database:', error);
+        showToast('Failed to load notes', 'error');
+      } finally {
+        setIsLoading(false);
       }
-
-      return null;
     };
 
-    const loadedNotes = initializeData();
-    if (loadedNotes) {
-      setNotes(loadedNotes);
-      setActiveNote(loadedNotes.length > 0 ? loadedNotes[0] : null);
-    } else {
-      // Create a welcome note
-      const welcomeNote: Note = {
-        id: '1',
-        title: 'Welcome to NoteMaster',
-        content: '<p>Start taking notes! This app is designed to be better than UpNote with rich text editing, powerful search, and a clean interface.</p>',
-        tags: ['welcome', 'getting-started'],
-        notebookId: 'general',
-        pinned: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setNotes([welcomeNote]);
-      setActiveNote(welcomeNote);
+    if (session?.user?.id) {
+      loadDataFromDatabase();
+    }
+  }, [session?.user?.id]);
+
+  // Load and save font settings
+  useEffect(() => {
+    const savedFontSettings = localStorage.getItem('fontSettings');
+    if (savedFontSettings) {
+      try {
+        setFontSettings(JSON.parse(savedFontSettings));
+      } catch (error) {
+        console.error('Failed to parse font settings:', error);
+      }
     }
   }, []);
 
-  // Save notes to localStorage whenever notes change
   useEffect(() => {
-    localStorage.setItem('notes', JSON.stringify(notes));
-  }, [notes]);
+    localStorage.setItem('fontSettings', JSON.stringify(fontSettings));
+    // Apply font settings to the editor
+    document.documentElement.style.setProperty('--editor-font-family', fontSettings.fontFamily);
+    document.documentElement.style.setProperty('--editor-font-size', `${fontSettings.fontSize}px`);
+    document.documentElement.style.setProperty('--editor-line-height', fontSettings.lineHeight.toString());
+  }, [fontSettings]);
 
-  // Save notebooks to localStorage whenever notebooks change
-  useEffect(() => {
-    localStorage.setItem('notebooks', JSON.stringify(notebooks));
-  }, [notebooks]);
+  const createNewNote = async (templateContent = '') => {
+    try {
+      const response = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Untitled Note',
+          content: templateContent,
+          tags: [],
+          notebookId: selectedNotebook === 'All' ? 'general' : selectedNotebook,
+          pinned: false,
+        })
+      });
 
-  const createNewNote = (templateContent = '') => {
-    const newNote: Note = {
-      id: Date.now().toString(),
-      title: 'Untitled Note',
-      content: templateContent,
-      tags: [],
-      notebookId: selectedNotebook === 'All' ? 'general' : selectedNotebook,
-      pinned: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      versions: [],
-    };
-    setNotes(prev => [newNote, ...prev]);
-    setActiveNote(newNote);
-    setShowTemplateSelector(false);
-    showToast('Note created successfully', 'success');
-  };  const updateNote = useCallback((id: string, updates: Partial<Note>) => {
-    setNotes(prevNotes => prevNotes.map(note => {
-      if (note.id === id) {
-        // Create a version before updating (only for significant changes)
-        const shouldCreateVersion = updates.content !== undefined || updates.title !== undefined;
-        const newVersions = shouldCreateVersion ? [
-          ...(note.versions || []),
-          {
-            id: Date.now().toString(),
-            timestamp: new Date(),
-            title: note.title,
-            content: note.content,
-            tags: [...note.tags],
-            notebookId: note.notebookId,
-          }
-        ].slice(-10) : note.versions || []; // Keep only last 10 versions
+      if (!response.ok) throw new Error('Failed to create note');
 
-        return { 
-          ...note, 
-          ...updates, 
-          updatedAt: new Date(),
-          versions: newVersions
-        };
+      const { note: newNote } = await response.json();
+      const transformedNote = {
+        ...newNote,
+        createdAt: new Date(newNote.createdAt),
+        updatedAt: new Date(newNote.updatedAt),
+        versions: [],
+      };
+      
+      setNotes(prev => [transformedNote, ...prev]);
+      setActiveNote(transformedNote);
+      setShowTemplateSelector(false);
+      showToast('Note created successfully', 'success');
+    } catch (error) {
+      console.error('Error creating note:', error);
+      showToast('Failed to create note', 'error');
+    }
+  };  const updateNote = useCallback(async (id: string, updates: Partial<Note>) => {
+    try {
+      // Optimistically update the UI
+      setNotes(prevNotes => prevNotes.map(note => {
+        if (note.id === id) {
+          const updatedNote = { 
+            ...note, 
+            ...updates, 
+            updatedAt: new Date(),
+          };
+          
+          // Update activeNote if this is the active note
+          setActiveNote(prevActive => 
+            prevActive?.id === id ? updatedNote : prevActive
+          );
+          
+          return updatedNote;
+        }
+        return note;
+      }));
+
+      // Save to database
+      const response = await fetch(`/api/notes/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update note');
       }
-      return note;
-    }));
+    } catch (error) {
+      console.error('Error updating note:', error);
+      showToast('Failed to save note', 'error');
+    }
   }, []);
 
   const togglePinNote = (id: string) => {
@@ -298,16 +306,47 @@ export default function Home() {
     setConfirmDialog({ isOpen: true, noteId: id });
   };
 
-  const confirmDeleteNote = () => {
+  const confirmDeleteNote = async () => {
     if (confirmDialog?.noteId) {
-      setNotes(prev => prev.filter(note => note.id !== confirmDialog.noteId));
+      const noteId = confirmDialog.noteId;
       
-      // If we're deleting the active note, select the first remaining note
-      if (activeNote?.id === confirmDialog.noteId) {
-        const remainingNotes = notes.filter(note => note.id !== confirmDialog.noteId);
-        setActiveNote(remainingNotes.length > 0 ? remainingNotes[0] : null);
+      try {
+        // Optimistically update UI
+        setNotes(prev => prev.filter(note => note.id !== noteId));
+        
+        // If we're deleting the active note, select the first remaining note
+        if (activeNote?.id === noteId) {
+          const remainingNotes = notes.filter(note => note.id !== noteId);
+          setActiveNote(remainingNotes.length > 0 ? remainingNotes[0] : null);
+        }
+
+        // Delete from database
+        const response = await fetch(`/api/notes/${noteId}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to delete note');
+        }
+
+        showToast('Note deleted successfully', 'success');
+      } catch (error) {
+        console.error('Error deleting note:', error);
+        showToast('Failed to delete note', 'error');
+        // Reload notes on error
+        const notesRes = await fetch('/api/notes');
+        if (notesRes.ok) {
+          const { notes: dbNotes } = await notesRes.json();
+          const transformedNotes = dbNotes.map((note: any) => ({
+            ...note,
+            tags: note.tags || [],
+            versions: [],
+            createdAt: new Date(note.createdAt),
+            updatedAt: new Date(note.updatedAt),
+          }));
+          setNotes(transformedNotes);
+        }
       }
-      showToast('Note deleted successfully', 'success');
     }
     setConfirmDialog(null);
   };
@@ -618,6 +657,8 @@ export default function Home() {
     { id: 'analytics', label: 'Analytics Dashboard', icon: '📊', action: () => setShowAnalytics(true), category: 'Tools', keywords: ['stats', 'statistics'] },
     { id: 'themes', label: 'Change Theme', icon: '🎨', action: () => setShowThemeSelector(true), category: 'Tools', keywords: ['appearance', 'colors'] },
     { id: 'web-clipper', label: 'Web Clipper', icon: '📎', action: () => setShowWebClipper(true), category: 'Tools', keywords: ['clip', 'save'] },
+    { id: 'font-settings', label: 'Font Settings', icon: '🔤', action: () => setShowFontSettings(true), category: 'Tools', keywords: ['font', 'typography', 'size'] },
+    { id: 'split-view', label: 'Split View', icon: '📑', action: () => setShowSplitView(true), category: 'Tools', keywords: ['side-by-side', 'compare'] },
     
     // Organization
     { id: 'templates', label: 'Template Library', icon: '📚', action: () => setShowTemplateLibrary(true), category: 'Organization', keywords: ['template', 'preset'] },
@@ -758,6 +799,28 @@ export default function Home() {
         />
       )}
 
+      {/* Font Settings */}
+      {showFontSettings && (
+        <FontSettings
+          currentSettings={fontSettings}
+          onSettingsChange={(newSettings) => {
+            setFontSettings(newSettings);
+            showToast('Font settings applied!', 'success');
+          }}
+          onClose={() => setShowFontSettings(false)}
+        />
+      )}
+
+      {/* Split View */}
+      {showSplitView && (
+        <SplitView
+          notes={notes.filter(n => !n.archived)}
+          notebooks={notebooks}
+          onUpdateNote={updateNote}
+          onClose={() => setShowSplitView(false)}
+        />
+      )}
+
     <div className="flex flex-col h-screen overflow-hidden">
       {/* Top Command Bar */}
       {!distractionFreeMode && (
@@ -824,6 +887,67 @@ export default function Home() {
               >
                 📊
               </button>
+              <button
+                onClick={() => setShowFontSettings(true)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all text-gray-700"
+                title="Font Settings"
+              >
+                🔤
+              </button>
+              <button
+                onClick={() => setShowSplitView(true)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all text-gray-700"
+                title="Split View"
+              >
+                📑
+              </button>
+
+              {/* User Menu */}
+              <div className="relative ml-2 pl-2 border-l border-gray-200">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg transition-all"
+                  title="User Menu"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                    {session?.user?.name?.charAt(0)?.toUpperCase() || session?.user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 hidden md:block">
+                    {session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
+                  </span>
+                  <span className="text-gray-400 text-xs">▼</span>
+                </button>
+
+                {/* User Dropdown Menu */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900">{session?.user?.name || 'User'}</p>
+                      <p className="text-xs text-gray-500 truncate">{session?.user?.email}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        setShowUserSettings(true);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <span>⚙️</span>
+                      <span>Settings</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        signOut({ callbackUrl: '/auth/signin' });
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    >
+                      <span>🚪</span>
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1397,6 +1521,15 @@ export default function Home() {
         onClose={() => setShowBackupDialog(false)}
         onBackup={handleBackup}
         onRestore={handleRestore}
+      />
+
+      <UserSettings
+        isOpen={showUserSettings}
+        onClose={() => setShowUserSettings(false)}
+        currentTheme={currentTheme}
+        onThemeChange={handleThemeChange}
+        fontSettings={fontSettings}
+        onFontSettingsChange={setFontSettings}
       />
       </div>
     </div>

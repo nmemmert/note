@@ -217,3 +217,291 @@ body {
 .pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+/* ============================================
+   THEME SYSTEM
+   ============================================ */
+
+/* Dark Theme */
+body.theme-dark {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+}
+
+body.theme-dark .bg-white {
+  background-color: #1e293b !important;
+}
+
+body.theme-dark .text-gray-900,
+body.theme-dark .text-gray-800,
+body.theme-dark .text-gray-700 {
+  color: #f1f5f9 !important;
+}
+
+body.theme-dark .text-gray-600,
+body.theme-dark .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+body.theme-dark .text-gray-400 {
+  color: #64748b !important;
+}
+
+body.theme-dark .border-gray-200,
+body.theme-dark .border-gray-300 {
+  border-color: #334155 !important;
+}
+
+body.theme-dark .bg-gray-50,
+body.theme-dark .bg-gray-100 {
+  background-color: #1e293b !important;
+}
+
+body.theme-dark .bg-gray-200 {
+  background-color: #334155 !important;
+}
+
+body.theme-dark .hover\:bg-gray-50:hover,
+body.theme-dark .hover\:bg-gray-100:hover {
+  background-color: #334155 !important;
+}
+
+body.theme-dark .bg-blue-50 {
+  background-color: #1e3a5f !important;
+}
+
+body.theme-dark .bg-purple-50 {
+  background-color: #2e1f4f !important;
+}
+
+/* Nord Theme */
+body.theme-nord {
+  background: #2e3440 !important;
+  color: #eceff4 !important;
+}
+
+body.theme-nord .bg-white {
+  background-color: #3b4252 !important;
+}
+
+body.theme-nord .text-gray-900,
+body.theme-nord .text-gray-800,
+body.theme-nord .text-gray-700 {
+  color: #eceff4 !important;
+}
+
+body.theme-nord .text-gray-600,
+body.theme-nord .text-gray-500 {
+  color: #d8dee9 !important;
+}
+
+body.theme-nord .text-gray-400 {
+  color: #81a1c1 !important;
+}
+
+body.theme-nord .border-gray-200,
+body.theme-nord .border-gray-300 {
+  border-color: #4c566a !important;
+}
+
+body.theme-nord .bg-gray-50,
+body.theme-nord .bg-gray-100 {
+  background-color: #3b4252 !important;
+}
+
+body.theme-nord .bg-gray-200 {
+  background-color: #4c566a !important;
+}
+
+body.theme-nord .hover\:bg-gray-50:hover,
+body.theme-nord .hover\:bg-gray-100:hover {
+  background-color: #4c566a !important;
+}
+
+body.theme-nord .bg-blue-500,
+body.theme-nord .bg-blue-600 {
+  background-color: #88c0d0 !important;
+}
+
+body.theme-nord .text-blue-600 {
+  color: #88c0d0 !important;
+}
+
+/* Solarized Theme */
+body.theme-solarized {
+  background: #fdf6e3 !important;
+  color: #657b83 !important;
+}
+
+body.theme-solarized .bg-white {
+  background-color: #eee8d5 !important;
+}
+
+body.theme-solarized .text-gray-900,
+body.theme-solarized .text-gray-800,
+body.theme-solarized .text-gray-700 {
+  color: #657b83 !important;
+}
+
+body.theme-solarized .text-gray-600,
+body.theme-solarized .text-gray-500 {
+  color: #93a1a1 !important;
+}
+
+body.theme-solarized .border-gray-200,
+body.theme-solarized .border-gray-300 {
+  border-color: #d3cbb8 !important;
+}
+
+body.theme-solarized .bg-gray-50,
+body.theme-solarized .bg-gray-100 {
+  background-color: #eee8d5 !important;
+}
+
+body.theme-solarized .hover\:bg-gray-50:hover,
+body.theme-solarized .hover\:bg-gray-100:hover {
+  background-color: #d3cbb8 !important;
+}
+
+body.theme-solarized .bg-blue-500,
+body.theme-solarized .bg-blue-600 {
+  background-color: #268bd2 !important;
+}
+
+body.theme-solarized .text-blue-600 {
+  color: #268bd2 !important;
+}
+
+/* Dracula Theme */
+body.theme-dracula {
+  background: #282a36 !important;
+  color: #f8f8f2 !important;
+}
+
+body.theme-dracula .bg-white {
+  background-color: #44475a !important;
+}
+
+body.theme-dracula .text-gray-900,
+body.theme-dracula .text-gray-800,
+body.theme-dracula .text-gray-700 {
+  color: #f8f8f2 !important;
+}
+
+body.theme-dracula .text-gray-600,
+body.theme-dracula .text-gray-500 {
+  color: #6272a4 !important;
+}
+
+body.theme-dracula .border-gray-200,
+body.theme-dracula .border-gray-300 {
+  border-color: #6272a4 !important;
+}
+
+body.theme-dracula .bg-gray-50,
+body.theme-dracula .bg-gray-100 {
+  background-color: #44475a !important;
+}
+
+body.theme-dracula .bg-gray-200 {
+  background-color: #6272a4 !important;
+}
+
+body.theme-dracula .hover\:bg-gray-50:hover,
+body.theme-dracula .hover\:bg-gray-100:hover {
+  background-color: #6272a4 !important;
+}
+
+body.theme-dracula .bg-blue-500,
+body.theme-dracula .bg-blue-600 {
+  background-color: #bd93f9 !important;
+}
+
+body.theme-dracula .text-blue-600 {
+  color: #bd93f9 !important;
+}
+
+/* Monokai Theme */
+body.theme-monokai {
+  background: #272822 !important;
+  color: #f8f8f2 !important;
+}
+
+body.theme-monokai .bg-white {
+  background-color: #3e3d32 !important;
+}
+
+body.theme-monokai .text-gray-900,
+body.theme-monokai .text-gray-800,
+body.theme-monokai .text-gray-700 {
+  color: #f8f8f2 !important;
+}
+
+body.theme-monokai .text-gray-600,
+body.theme-monokai .text-gray-500 {
+  color: #75715e !important;
+}
+
+body.theme-monokai .border-gray-200,
+body.theme-monokai .border-gray-300 {
+  border-color: #49483e !important;
+}
+
+body.theme-monokai .bg-gray-50,
+body.theme-monokai .bg-gray-100 {
+  background-color: #3e3d32 !important;
+}
+
+body.theme-monokai .bg-gray-200 {
+  background-color: #49483e !important;
+}
+
+body.theme-monokai .hover\:bg-gray-50:hover,
+body.theme-monokai .hover\:bg-gray-100:hover {
+  background-color: #49483e !important;
+}
+
+body.theme-monokai .bg-blue-500,
+body.theme-monokai .bg-blue-600 {
+  background-color: #66d9ef !important;
+}
+
+body.theme-monokai .text-blue-600 {
+  color: #66d9ef !important;
+}
+
+/* Universal theme adjustments */
+body[class*='theme-'] .ProseMirror {
+  color: inherit !important;
+}
+
+body[class*='theme-'] .ProseMirror h1,
+body[class*='theme-'] .ProseMirror h2,
+body[class*='theme-'] .ProseMirror h3,
+body[class*='theme-'] .ProseMirror h4,
+body[class*='theme-'] .ProseMirror h5,
+body[class*='theme-'] .ProseMirror h6,
+body[class*='theme-'] .ProseMirror p {
+  color: inherit !important;
+}
+
+/* Adjust scrollbar for dark themes */
+body.theme-dark ::-webkit-scrollbar-track,
+body.theme-nord ::-webkit-scrollbar-track,
+body.theme-dracula ::-webkit-scrollbar-track,
+body.theme-monokai ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.theme-dark ::-webkit-scrollbar-thumb,
+body.theme-nord ::-webkit-scrollbar-thumb,
+body.theme-dracula ::-webkit-scrollbar-thumb,
+body.theme-monokai ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+body.theme-dark ::-webkit-scrollbar-thumb:hover,
+body.theme-nord ::-webkit-scrollbar-thumb:hover,
+body.theme-dracula ::-webkit-scrollbar-thumb:hover,
+body.theme-monokai ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
