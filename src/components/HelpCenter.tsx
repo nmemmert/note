@@ -152,7 +152,7 @@ export default function HelpCenter({ onClose }: HelpCenterProps) {
 
                 {/* Article Content */}
                 <div 
-                  className="prose prose-blue dark:prose-invert max-w-none"
+                  className="prose prose-blue dark:prose-invert max-w-none [&_h2]:text-gray-900 dark:[&_h2]:text-white [&_h3]:text-gray-800 dark:[&_h3]:text-gray-100 [&_p]:text-gray-700 dark:[&_p]:text-gray-200 [&_li]:text-gray-700 dark:[&_li]:text-gray-200 [&_strong]:text-gray-900 dark:[&_strong]:text-white [&_code]:text-gray-900 dark:[&_code]:text-gray-100 [&_kbd]:text-gray-900 dark:[&_kbd]:text-gray-100"
                   dangerouslySetInnerHTML={{ __html: selectedArticle.content }}
                 />
 
