@@ -28,6 +28,9 @@ import SmartFolders from '../components/SmartFolders';
 import FontSettings from '../components/FontSettings';
 import SplitView from '../components/SplitView';
 import UserSettings from '../components/UserSettings';
+import RelatedNotes from '../components/RelatedNotes';
+import WritingSuggestions from '../components/WritingSuggestions';
+import AutoSummary from '../components/AutoSummary';
 
 // Global function to update note tags
 declare global {
@@ -1256,6 +1259,34 @@ export default function Home() {
                         }
                       }}
                     />
+                  </div>
+                )}
+
+                {/* AI-Powered Features */}
+                {activeNote.content.length > 100 && !distractionFreeMode && (
+                  <div className="mt-4 space-y-4">
+                    {/* Auto Summary and Tag Suggestions */}
+                    <AutoSummary
+                      content={activeNote.content}
+                      currentTags={activeNote.tags}
+                      onAddTag={(tag: string) => {
+                        if (!activeNote.tags.includes(tag)) {
+                          updateNote(activeNote.id, { tags: [...activeNote.tags, tag] });
+                        }
+                      }}
+                    />
+
+                    {/* Writing Suggestions */}
+                    <WritingSuggestions content={activeNote.content} />
+
+                    {/* Related Notes */}
+                    {notes.length > 1 && (
+                      <RelatedNotes
+                        currentNote={activeNote}
+                        allNotes={notes.filter(n => n.id !== activeNote.id && !n.archived)}
+                        onNoteSelect={(note) => setActiveNote(note)}
+                      />
+                    )}
                   </div>
                 )}
               </div>
