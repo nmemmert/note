@@ -9,6 +9,20 @@ import UpNoteImporter from '../components/UpNoteImporter';
 import { TableOfContents } from '../components/TableOfContents';
 import { CalendarView } from '../components/CalendarView';
 import { BackupDialog } from '../components/BackupDialog';
+import Toast from '../components/Toast';
+import LoadingSpinner from '../components/LoadingSpinner';
+import EmptyState from '../components/EmptyState';
+import ConfirmDialog from '../components/ConfirmDialog';
+import CommandPalette from '../components/CommandPalette';
+import ReadingMode from '../components/ReadingMode';
+import ThemeSelector, { applyTheme } from '../components/ThemeSelector';
+import PomodoroTimer from '../components/PomodoroTimer';
+import AnalyticsDashboard from '../components/AnalyticsDashboard';
+import SmartTagSuggestions from '../components/SmartTagSuggestions';
+import TemplateLibrary from '../components/TemplateLibrary';
+import FavoritesView from '../components/FavoritesView';
+import ArchiveView from '../components/ArchiveView';
+import SmartFolders from '../components/SmartFolders';
 
 // Global function to update note tags
 declare global {
@@ -27,6 +41,9 @@ interface Note {
   versions?: NoteVersion[];
   dueDate?: string; // For task management
   completed?: boolean; // For task completion status
+  favorite?: boolean; // For favorites
+  archived?: boolean; // For archive
+  archivedAt?: Date; // When note was archived
 }
 
 interface NoteVersion {
@@ -79,7 +96,45 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showTableOfContents, setShowTableOfContents] = useState(false);
   const [showBackupDialog, setShowBackupDialog] = useState(false);
-  const [showSidebarMenu, setShowSidebarMenu] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; noteId?: string } | null>(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [distractionFreeMode, setDistractionFreeMode] = useState(false);
+  const [collapsedNotebooks, setCollapsedNotebooks] = useState<Set<string>>(new Set());
+  const [wordCount, setWordCount] = useState(0);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showReadingMode, setShowReadingMode] = useState(false);
+  const [readingFontSize, setReadingFontSize] = useState(18);
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState('light');
+  const [showPomodoroTimer, setShowPomodoroTimer] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [charCount, setCharCount] = useState(0);
+  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
+  const [showSmartFolders, setShowSmartFolders] = useState(false);
+
+  // Show toast helper
+  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setToast({ message, type });
+  };
+
+  // Load theme on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setCurrentTheme(savedTheme);
+    applyTheme(savedTheme);
+  }, []);
+
+  // Handle theme change
+  const handleThemeChange = (themeId: string) => {
+    setCurrentTheme(themeId);
+    applyTheme(themeId);
+    localStorage.setItem('theme', themeId);
+    showToast(`Theme changed to ${themeId}`, 'success');
+  };
 
   // Load notes and folders from localStorage on mount
   useEffect(() => {
@@ -188,22 +243,23 @@ export default function Home() {
     localStorage.setItem('notebooks', JSON.stringify(notebooks));
   }, [notebooks]);
 
-  const createNewNote = (content: string = '', notebookId?: string) => {
+  const createNewNote = (templateContent = '') => {
     const newNote: Note = {
       id: Date.now().toString(),
-      title: 'New Note',
-      content,
+      title: 'Untitled Note',
+      content: templateContent,
       tags: [],
-      notebookId: notebookId || selectedNotebook !== 'All' ? selectedNotebook : 'general',
+      notebookId: selectedNotebook === 'All' ? 'general' : selectedNotebook,
       pinned: false,
       createdAt: new Date(),
       updatedAt: new Date(),
+      versions: [],
     };
     setNotes(prev => [newNote, ...prev]);
     setActiveNote(newNote);
-  };
-
-  const updateNote = useCallback((id: string, updates: Partial<Note>) => {
+    setShowTemplateSelector(false);
+    showToast('Note created successfully', 'success');
+  };  const updateNote = useCallback((id: string, updates: Partial<Note>) => {
     setNotes(prevNotes => prevNotes.map(note => {
       if (note.id === id) {
         // Create a version before updating (only for significant changes)
@@ -239,13 +295,21 @@ export default function Home() {
   };
 
   const deleteNote = (id: string) => {
-    setNotes(prev => prev.filter(note => note.id !== id));
-    
-    // If we're deleting the active note, select the first remaining note
-    if (activeNote?.id === id) {
-      const remainingNotes = notes.filter(note => note.id !== id);
-      setActiveNote(remainingNotes.length > 0 ? remainingNotes[0] : null);
+    setConfirmDialog({ isOpen: true, noteId: id });
+  };
+
+  const confirmDeleteNote = () => {
+    if (confirmDialog?.noteId) {
+      setNotes(prev => prev.filter(note => note.id !== confirmDialog.noteId));
+      
+      // If we're deleting the active note, select the first remaining note
+      if (activeNote?.id === confirmDialog.noteId) {
+        const remainingNotes = notes.filter(note => note.id !== confirmDialog.noteId);
+        setActiveNote(remainingNotes.length > 0 ? remainingNotes[0] : null);
+      }
+      showToast('Note deleted successfully', 'success');
     }
+    setConfirmDialog(null);
   };
 
   const selectNote = (id: string) => {
@@ -259,6 +323,9 @@ export default function Home() {
 
   const filteredNotes = notes
     .filter(note => {
+      // Filter out archived notes
+      if (note.archived) return false;
+      
       const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            note.content.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesNotebook = selectedNotebook === 'All' || note.notebookId === selectedNotebook;
@@ -299,6 +366,66 @@ export default function Home() {
     };
   }, [activeNote]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + N: New note
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        createNewNote();
+      }
+      // Ctrl/Cmd + P: Command Palette
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        setShowCommandPalette(true);
+      }
+      // Ctrl/Cmd + S: Auto-save (already happening)
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        showToast('Note saved', 'success');
+      }
+      // Ctrl/Cmd + K: Toggle sidebar
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSidebarCollapsed(prev => !prev);
+      }
+      // Ctrl/Cmd + D: Distraction-free mode
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        setDistractionFreeMode(prev => !prev);
+      }
+      // Ctrl/Cmd + R: Reading mode
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r' && activeNote) {
+        e.preventDefault();
+        setShowReadingMode(true);
+      }
+      // Escape: Exit distraction-free mode
+      if (e.key === 'Escape' && distractionFreeMode) {
+        setDistractionFreeMode(false);
+      }
+      // Escape: Close command palette
+      if (e.key === 'Escape' && showCommandPalette) {
+        setShowCommandPalette(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [distractionFreeMode, showCommandPalette, activeNote]);
+
+  // Calculate word count
+  useEffect(() => {
+    if (activeNote) {
+      const text = activeNote.content.replace(/<[^>]*>/g, '').trim();
+      const words = text.split(/\s+/).filter(word => word.length > 0);
+      setWordCount(words.length);
+      setCharCount(text.length);
+    } else {
+      setWordCount(0);
+      setCharCount(0);
+    }
+  }, [activeNote?.content]);
+
   const restoreVersion = (noteId: string, version: NoteVersion) => {
     updateNote(noteId, {
       title: version.title,
@@ -320,6 +447,7 @@ export default function Home() {
       updatedAt: new Date(),
     };
     setNotebooks(prev => [...prev, newNotebook]);
+    showToast(`Notebook "${name}" created`, 'success');
     return newNotebook.id;
   };
 
@@ -459,196 +587,266 @@ export default function Home() {
             setActiveNote(restoredNotes[0]);
           }
           
-          alert('Backup restored successfully!');
+          showToast('Backup restored successfully!', 'success');
         } else {
-          alert('Invalid backup file format.');
+          showToast('Invalid backup file format', 'error');
         }
       } catch (error) {
-        alert('Failed to restore backup. Please check the file format.');
+        showToast('Failed to restore backup', 'error');
         console.error('Restore error:', error);
       }
     };
     reader.readAsText(file);
   };
 
-  // Close sidebar menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showSidebarMenu && !(event.target as Element).closest('.sidebar-menu')) {
-        setShowSidebarMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showSidebarMenu]);
+  // Command palette commands
+  const commands = [
+    // Note actions
+    { id: 'new-note', label: 'New Note', icon: '📝', action: () => createNewNote(), category: 'Notes', keywords: ['create', 'add'] },
+    { id: 'delete-note', label: 'Delete Note', icon: '🗑️', action: () => activeNote && deleteNote(activeNote.id), category: 'Notes', keywords: ['remove', 'trash'] },
+    { id: 'pin-note', label: 'Pin/Unpin Note', icon: '📌', action: () => activeNote && updateNote(activeNote.id, { pinned: !activeNote.pinned }), category: 'Notes' },
+    
+    // Views
+    { id: 'reading-mode', label: 'Reading Mode', icon: '📖', action: () => setShowReadingMode(true), category: 'Views', keywords: ['read', 'view'] },
+    { id: 'distraction-free', label: 'Distraction Free Mode', icon: '🎯', action: () => setDistractionFreeMode(!distractionFreeMode), category: 'Views', keywords: ['focus', 'zen'] },
+    { id: 'calendar', label: 'Toggle Calendar', icon: '📅', action: () => setShowCalendar(!showCalendar), category: 'Views' },
+    { id: 'toc', label: 'Toggle Table of Contents', icon: '📋', action: () => setShowTableOfContents(!showTableOfContents), category: 'Views' },
+    { id: 'sidebar', label: 'Toggle Sidebar', icon: '↔️', action: () => setIsSidebarCollapsed(!isSidebarCollapsed), category: 'Views' },
+    
+    // Tools
+    { id: 'pomodoro', label: 'Pomodoro Timer', icon: '⏲️', action: () => setShowPomodoroTimer(!showPomodoroTimer), category: 'Tools', keywords: ['timer', 'focus'] },
+    { id: 'analytics', label: 'Analytics Dashboard', icon: '📊', action: () => setShowAnalytics(true), category: 'Tools', keywords: ['stats', 'statistics'] },
+    { id: 'themes', label: 'Change Theme', icon: '🎨', action: () => setShowThemeSelector(true), category: 'Tools', keywords: ['appearance', 'colors'] },
+    { id: 'web-clipper', label: 'Web Clipper', icon: '📎', action: () => setShowWebClipper(true), category: 'Tools', keywords: ['clip', 'save'] },
+    
+    // Organization
+    { id: 'templates', label: 'Template Library', icon: '📚', action: () => setShowTemplateLibrary(true), category: 'Organization', keywords: ['template', 'preset'] },
+    { id: 'favorites', label: 'Favorites', icon: '⭐', action: () => setShowFavorites(true), category: 'Organization', keywords: ['starred', 'important'] },
+    { id: 'archive', label: 'Archive', icon: '📦', action: () => setShowArchive(true), category: 'Organization', keywords: ['archived', 'hidden'] },
+    { id: 'smart-folders', label: 'Smart Folders', icon: '🗂️', action: () => setShowSmartFolders(true), category: 'Organization', keywords: ['automatic', 'filter'] },
+    { id: 'toggle-favorite', label: 'Toggle Favorite', icon: '⭐', action: () => activeNote && updateNote(activeNote.id, { favorite: !activeNote.favorite }), category: 'Organization' },
+    { id: 'archive-note', label: 'Archive Note', icon: '📦', action: () => activeNote && updateNote(activeNote.id, { archived: true, archivedAt: new Date() }), category: 'Organization' },
+    
+    // Data
+    { id: 'backup', label: 'Backup & Restore', icon: '💾', action: () => setShowBackupDialog(true), category: 'Data', keywords: ['export', 'save'] },
+    { id: 'import', label: 'Import from UpNote', icon: '📥', action: () => setShowUpNoteImporter(true), category: 'Data', keywords: ['import', 'migrate'] },
+    { id: 'export', label: 'Export Note', icon: '📤', action: () => setShowExportDialog(true), category: 'Data', keywords: ['download', 'save'] },
+    
+    // Notebooks
+    { id: 'new-notebook', label: 'New Notebook', icon: '📚', action: () => setShowNewNotebookDialog(true), category: 'Notebooks', keywords: ['create', 'folder'] },
+    
+    // Search
+    { id: 'advanced-search', label: 'Advanced Search', icon: '🔍', action: () => setShowAdvancedSearch(!showAdvancedSearch), category: 'Search', keywords: ['find', 'filter'] },
+  ];
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        {/* Header */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-semibold text-gray-900">NoteMaster</h1>
-            <div className="flex flex-wrap gap-1 justify-end">
-              <div className="relative sidebar-menu">
+    <>
+      {/* Command Palette */}
+      {showCommandPalette && (
+        <CommandPalette
+          isOpen={showCommandPalette}
+          onClose={() => setShowCommandPalette(false)}
+          commands={commands}
+        />
+      )}
+
+      {/* Reading Mode */}
+      {showReadingMode && activeNote && (
+        <ReadingMode
+          content={activeNote.content}
+          title={activeNote.title}
+          fontSize={readingFontSize}
+          onFontSizeChange={setReadingFontSize}
+          onClose={() => setShowReadingMode(false)}
+        />
+      )}
+
+      {/* Theme Selector */}
+      {showThemeSelector && (
+        <ThemeSelector
+          currentTheme={currentTheme}
+          onThemeChange={(theme) => {
+            setCurrentTheme(theme);
+            setShowThemeSelector(false);
+          }}
+          onClose={() => setShowThemeSelector(false)}
+        />
+      )}
+
+      {/* Pomodoro Timer */}
+      {showPomodoroTimer && (
+        <div className="fixed bottom-4 right-4 z-40 animate-slideIn">
+          <PomodoroTimer 
+            isOpen={showPomodoroTimer}
+            onClose={() => setShowPomodoroTimer(false)} 
+          />
+        </div>
+      )}
+
+      {/* Analytics Dashboard */}
+      {showAnalytics && (
+        <AnalyticsDashboard 
+          notes={notes} 
+          onClose={() => setShowAnalytics(false)}
+        />
+      )}
+
+      {/* Template Library */}
+      {showTemplateLibrary && (
+        <TemplateLibrary
+          onSelectTemplate={(template) => {
+            const newNote: Note = {
+              id: Date.now().toString(),
+              title: template.name,
+              content: template.content,
+              tags: template.tags,
+              notebookId: selectedNotebook === 'all' ? 'general' : selectedNotebook,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              pinned: false,
+              versions: []
+            };
+            setNotes([newNote, ...notes]);
+            setActiveNote(newNote);
+            setShowTemplateLibrary(false);
+            showToast(`Created note from "${template.name}" template`, 'success');
+          }}
+          onClose={() => setShowTemplateLibrary(false)}
+        />
+      )}
+
+      {/* Favorites View */}
+      {showFavorites && (
+        <FavoritesView
+          notes={notes.filter(n => !n.archived)}
+          onSelectNote={(note) => setActiveNote(note)}
+          onToggleFavorite={(noteId) => {
+            const note = notes.find(n => n.id === noteId);
+            updateNote(noteId, { favorite: !note?.favorite });
+            showToast(note?.favorite ? 'Removed from favorites' : 'Added to favorites', 'success');
+          }}
+          onClose={() => setShowFavorites(false)}
+        />
+      )}
+
+      {/* Archive View */}
+      {showArchive && (
+        <ArchiveView
+          notes={notes}
+          onSelectNote={(note) => setActiveNote(note)}
+          onUnarchive={(noteId) => {
+            updateNote(noteId, { archived: false, archivedAt: undefined });
+            showToast('Note restored from archive', 'success');
+          }}
+          onPermanentDelete={(noteId) => {
+            deleteNote(noteId);
+            showToast('Note permanently deleted', 'success');
+          }}
+          onClose={() => setShowArchive(false)}
+        />
+      )}
+
+      {/* Smart Folders */}
+      {showSmartFolders && (
+        <SmartFolders
+          notes={notes.filter(n => !n.archived)}
+          onSelectNote={(note) => {
+            setActiveNote(note);
+            setShowSmartFolders(false);
+          }}
+          onClose={() => setShowSmartFolders(false)}
+        />
+      )}
+
+    <div className="flex flex-col h-screen overflow-hidden">
+      {/* Top Command Bar */}
+      {!distractionFreeMode && (
+        <div className="bg-white border-b border-gray-200 shadow-sm z-10">
+          <div className="px-6 py-3 flex items-center gap-4">
+            {/* App Title */}
+            <div className="flex items-center gap-3">
+              <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                NoteMaster
+              </h1>
+            </div>
+
+            {/* Command Bar Search */}
+            <div className="flex-1 max-w-2xl">
               <button
-                  onClick={() => setShowSidebarMenu(!showSidebarMenu)}
-                  className="p-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
-                  title="Menu"
-                >
-                  ☰
-                </button>
-                
-                {showSidebarMenu && (
-                  <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                    <div className="py-1">
-                      <button
-                        onClick={() => {
-                          setShowQuickAccess(!showQuickAccess);
-                          setShowSidebarMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                      >
-                        <span>⚡</span> Quick Access
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowWebClipper(true);
-                          setShowSidebarMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                      >
-                        <span>📎</span> Web Clipper
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowUpNoteImporter(true);
-                          setShowSidebarMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                      >
-                        <span>📥</span> Import from UpNote
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowNewNotebookDialog(true);
-                          setShowSidebarMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                      >
-                        <span>📚</span> New Notebook
-                      </button>
-                      <div className="border-t border-gray-100 my-1"></div>
-                      <button
-                        onClick={() => {
-                          setShowAdvancedSearch(!showAdvancedSearch);
-                          setShowSidebarMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                      >
-                        <span>🔍</span> Advanced Search
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowCalendar(!showCalendar);
-                          setShowSidebarMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                      >
-                        <span>📅</span> Calendar View
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowTableOfContents(!showTableOfContents);
-                          setShowSidebarMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                      >
-                        <span>📋</span> Table of Contents
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowBackupDialog(true);
-                          setShowSidebarMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                      >
-                        <span>💾</span> Backup & Restore
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+                onClick={() => setShowCommandPalette(true)}
+                className="w-full px-4 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-left text-sm text-gray-500 flex items-center justify-between transition-all group"
+              >
+                <div className="flex items-center gap-2">
+                  <span>🔍</span>
+                  <span>Search or type a command...</span>
+                </div>
+                <kbd className="px-2 py-1 bg-white border border-gray-200 rounded text-xs font-mono text-gray-600 group-hover:border-gray-300">
+                  Ctrl+P
+                </kbd>
+              </button>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => createNewNote()}
+                className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-all shadow-sm hover:shadow"
+                title="New Note (Ctrl+N)"
+              >
+                <span>➕</span>
+                <span className="hidden md:inline">New Note</span>
+              </button>
+              <button
+                onClick={() => setShowTemplateLibrary(true)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all text-gray-700"
+                title="Templates"
+              >
+                📚
+              </button>
+              <button
+                onClick={() => setShowFavorites(true)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all text-gray-700"
+                title="Favorites"
+              >
+                ⭐
+              </button>
+              <button
+                onClick={() => setShowSmartFolders(true)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all text-gray-700"
+                title="Smart Folders"
+              >
+                🗂️
+              </button>
+              <button
+                onClick={() => setShowAnalytics(true)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all text-gray-700"
+                title="Analytics"
+              >
+                📊
+              </button>
             </div>
           </div>
-          <button
-            onClick={() => setShowTemplateSelector(true)}
-            className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            + New Note
-          </button>
-          <div className="mt-4">
-            <input
-              type="text"
-              placeholder="Search notes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
-            />
-            {showAdvancedSearch && (
-              <div className="mt-2 p-3 bg-gray-50 rounded-lg border">
-                <h4 className="font-medium mb-2">Advanced Filters</h4>
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="date"
-                      placeholder="From date"
-                      value={searchFilters.dateFrom}
-                      onChange={(e) => setSearchFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
-                      className="px-2 py-1 text-sm border border-gray-300 rounded"
-                    />
-                    <input
-                      type="date"
-                      placeholder="To date"
-                      value={searchFilters.dateTo}
-                      onChange={(e) => setSearchFilters(prev => ({ ...prev, dateTo: e.target.value }))}
-                      className="px-2 py-1 text-sm border border-gray-300 rounded"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="hasTasks"
-                      checked={searchFilters.hasTasks}
-                      onChange={(e) => setSearchFilters(prev => ({ ...prev, hasTasks: e.target.checked }))}
-                    />
-                    <label htmlFor="hasTasks" className="text-sm">Has tasks</label>
-                  </div>
-                  <select
-                    value={searchFilters.completed}
-                    onChange={(e) => setSearchFilters(prev => ({ ...prev, completed: e.target.value }))}
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                  >
-                    <option value="all">All tasks</option>
-                    <option value="completed">Completed</option>
-                    <option value="incomplete">Incomplete</option>
-                  </select>
-                  <select
-                    value={searchFilters.contentType}
-                    onChange={(e) => setSearchFilters(prev => ({ ...prev, contentType: e.target.value }))}
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                  >
-                    <option value="all">All content</option>
-                    <option value="text">Text only</option>
-                    <option value="images">With images</option>
-                    <option value="links">With links</option>
-                  </select>
-                </div>
-              </div>
-            )}
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex flex-1 overflow-hidden" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
+        {/* Sidebar */}
+        {!distractionFreeMode && (
+        <div className={`${isSidebarCollapsed ? 'w-16' : 'w-80'} bg-white border-r border-gray-200 flex flex-col transition-all duration-300 shadow-sm`}>
+        {/* Header */}
+        <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="p-2 rounded-lg bg-white hover:bg-gray-100 transition-all shadow-sm"
+              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {isSidebarCollapsed ? '→' : '←'}
+            </button>
           </div>
+          {!isSidebarCollapsed && (
+            <>
           <div className="mt-4 space-y-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Notebook</label>
@@ -679,16 +877,32 @@ export default function Home() {
               </select>
             </div>
           </div>
+            </>
+          )}
         </div>
 
         {/* Notes List */}
+        {!isSidebarCollapsed && (
         <div className="flex-1 overflow-y-auto">
-          {filteredNotes.map((note) => (
+          {filteredNotes.length === 0 ? (
+            <EmptyState
+              icon="📝"
+              title="No notes found"
+              description="Create your first note to get started"
+              action={{
+                label: "Create Note",
+                onClick: () => createNewNote()
+              }}
+            />
+          ) : (
+            filteredNotes.map((note) => (
             <div
               key={note.id}
               onClick={() => selectNote(note.id)}
-              className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
-                activeNote?.id === note.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+              className={`card-hover p-4 border-b border-gray-100 cursor-pointer transition-all ${
+                activeNote?.id === note.id 
+                  ? 'bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-l-blue-500' 
+                  : 'hover:bg-gray-50'
               }`}
             >
               <div className="flex items-start justify-between">
@@ -716,26 +930,43 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    togglePinNote(note.id);
-                  }}
-                  className={`ml-2 p-1 rounded hover:bg-gray-200 ${
-                    note.pinned ? 'text-yellow-500' : 'text-gray-400'
-                  }`}
-                  title={note.pinned ? 'Unpin note' : 'Pin note'}
-                >
-                  📌
-                </button>
+                <div className="flex gap-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateNote(note.id, { favorite: !note.favorite });
+                    }}
+                    className={`p-1 rounded hover:bg-gray-200 ${
+                      note.favorite ? 'text-yellow-500' : 'text-gray-400'
+                    }`}
+                    title={note.favorite ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    ⭐
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePinNote(note.id);
+                    }}
+                    className={`p-1 rounded hover:bg-gray-200 ${
+                      note.pinned ? 'text-yellow-500' : 'text-gray-400'
+                    }`}
+                    title={note.pinned ? 'Unpin note' : 'Pin note'}
+                  >
+                    📌
+                  </button>
+                </div>
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
+        )}
       </div>
+      )}
 
       {/* Quick Access Panel */}
-      {showQuickAccess && (
+      {showQuickAccess && !distractionFreeMode && (
         <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
           <div className="p-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">Quick Access</h2>
@@ -813,36 +1044,56 @@ export default function Home() {
         {activeNote ? (
           <>
             {/* Note Header */}
-            <div className="bg-white border-b border-gray-200 p-4">
+            <div className="bg-white border-b border-gray-200 p-4 shadow-sm">
+              {/* Breadcrumbs */}
+              <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
+                <span className="hover:text-blue-600 cursor-pointer">
+                  {notebooks.find(nb => nb.id === activeNote.notebookId)?.icon} {notebooks.find(nb => nb.id === activeNote.notebookId)?.name || 'General'}
+                </span>
+                <span>›</span>
+                <span className="text-gray-900">{activeNote.title || 'Untitled'}</span>
+              </div>
+              
               <input
                 type="text"
                 value={activeNote.title}
                 onChange={(e) => updateNote(activeNote.id, { title: e.target.value })}
-                className="text-2xl font-semibold text-gray-900 bg-transparent border-none outline-none w-full mb-2"
+                className="text-3xl font-bold text-gray-900 bg-transparent border-none outline-none w-full mb-3"
                 placeholder="Note title..."
               />
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Last updated: {activeNote.updatedAt.toLocaleString()}
-                </span>
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <span>Last updated: {activeNote.updatedAt.toLocaleString()}</span>
+                  <span className="text-gray-300">|</span>
+                  <span>{wordCount} words</span>
+                  <span className="text-gray-300">|</span>
+                  <span>{charCount} characters</span>
+                </div>
                 <div className="flex gap-2">
                   <button
+                    onClick={() => setDistractionFreeMode(!distractionFreeMode)}
+                    className="text-purple-600 hover:text-purple-800 text-sm px-3 py-1 rounded-lg hover:bg-purple-50 transition-all"
+                    title="Distraction Free Mode (Ctrl+D)"
+                  >
+                    👁️ Focus
+                  </button>
+                  <button
                     onClick={() => setShowVersionHistory(true)}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
+                    className="text-blue-600 hover:text-blue-800 text-sm px-3 py-1 rounded-lg hover:bg-blue-50 transition-all"
                     title="Version History"
                   >
                     📚 History
                   </button>
                   <button
                     onClick={() => setShowExportDialog(true)}
-                    className="text-green-600 hover:text-green-800 text-sm"
+                    className="text-green-600 hover:text-green-800 text-sm px-3 py-1 rounded-lg hover:bg-green-50 transition-all"
                     title="Export & Share"
                   >
                     📤 Export
                   </button>
                   <button
                     onClick={() => deleteNote(activeNote.id)}
-                    className="text-red-600 hover:text-red-800 text-sm"
+                    className="text-red-600 hover:text-red-800 text-sm px-3 py-1 rounded-lg hover:bg-red-50 transition-all"
                   >
                     Delete
                   </button>
@@ -852,7 +1103,7 @@ export default function Home() {
 
             {/* Note Editor */}
             <div className="flex-1 flex">
-              <div className={`p-4 bg-white ${showCalendar || showTableOfContents ? 'flex-1' : 'w-full'}`}>
+              <div className={`p-6 bg-white ${showCalendar || showTableOfContents ? 'flex-1' : 'w-full'} ${distractionFreeMode ? 'max-w-4xl mx-auto' : ''}`}>
                 <RichTextEditor
                   content={activeNote.content}
                   onChange={(content) => updateNote(activeNote.id, { content })}
@@ -867,11 +1118,27 @@ export default function Home() {
                   completed={activeNote.completed}
                   onCompletedChange={(completed) => updateNote(activeNote.id, { completed })}
                 />
+                
+                {/* Smart Tag Suggestions */}
+                {activeNote.content.length > 50 && (
+                  <div className="mt-4">
+                    <SmartTagSuggestions
+                      content={activeNote.content}
+                      existingTags={activeNote.tags}
+                      allTags={Array.from(new Set(notes.flatMap(n => n.tags)))}
+                      onAddTag={(tag: string) => {
+                        if (!activeNote.tags.includes(tag)) {
+                          updateNote(activeNote.id, { tags: [...activeNote.tags, tag] });
+                        }
+                      }}
+                    />
+                  </div>
+                )}
               </div>
               
               {/* Calendar View */}
-              {showCalendar && (
-                <div className="w-80 border-l border-gray-200 p-4 bg-white">
+              {showCalendar && !distractionFreeMode && (
+                <div className="w-80 border-l border-gray-200 p-4 bg-white shadow-sm">
                   <CalendarView
                     selectedDate={selectedDate || undefined}
                     onDateSelect={setSelectedDate}
@@ -886,22 +1153,48 @@ export default function Home() {
               )}
               
               {/* Table of Contents */}
-              {showTableOfContents && (
-                <div className="w-64 border-l border-gray-200 p-4 bg-white">
+              {showTableOfContents && !distractionFreeMode && (
+                <div className="w-64 border-l border-gray-200 p-4 bg-white shadow-sm">
                   <div>Table of Contents will be implemented with editor integration</div>
                 </div>
               )}
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-2">No notes selected</h2>
-              <p className="text-gray-500">Create a new note or select one from the sidebar</p>
-            </div>
-          </div>
+          <EmptyState
+            icon="📝"
+            title="Select a note to start"
+            description="Choose a note from the sidebar or create a new one to begin writing."
+            action={{
+              label: "Create Your First Note",
+              onClick: () => createNewNote()
+            }}
+          />
         )}
       </div>
+
+      {/* Toasts */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* Confirm Dialog */}
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title="Delete Note"
+          message="Are you sure you want to delete this note? This action cannot be undone."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          onConfirm={confirmDeleteNote}
+          onCancel={() => setConfirmDialog(null)}
+          type="danger"
+        />
+      )}
 
       {/* Version History Modal */}
       {showVersionHistory && activeNote && (
@@ -1105,6 +1398,8 @@ export default function Home() {
         onBackup={handleBackup}
         onRestore={handleRestore}
       />
+      </div>
     </div>
+    </>
   );
 }
