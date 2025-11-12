@@ -186,7 +186,7 @@ install_dependencies() {
     # Check if package.json changed or force rebuild
     if [[ "$FORCE_REBUILD" == "true" ]] || git diff HEAD@{1} HEAD --name-only | grep -q "package.json"; then
         print_step "Dependencies changed, running npm install..."
-        npm install --production
+        npm install
         print_success "Dependencies updated"
     else
         print_success "No dependency changes, skipping npm install"
@@ -312,7 +312,7 @@ rollback() {
             
             # Reinstall dependencies and rebuild
             cd "$APP_DIR"
-            npm install --production
+            npm install
             npm run build
             
             # Restart app
@@ -383,7 +383,7 @@ show_rollback_instructions() {
     
     echo ""
     echo "3. Reinstall and restart:"
-    echo -e "   ${BLUE}npm install --production${NC}"
+    echo -e "   ${BLUE}npm install${NC}"
     echo -e "   ${BLUE}npm run build${NC}"
     echo -e "   ${BLUE}pm2 restart notemaster${NC}"
     echo ""

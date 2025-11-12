@@ -325,7 +325,8 @@ update_prisma_schema() {
 install_dependencies() {
     print_step "Installing application dependencies..."
     cd "$APP_DIR"
-    npm install --production
+    # Install all dependencies (including devDependencies needed for build)
+    npm install
     print_success "Dependencies installed"
 }
 
