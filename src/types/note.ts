@@ -6,10 +6,10 @@ export interface Note {
   createdAt: Date;
   updatedAt: Date;
   notebookId?: string;
-  pinned: boolean;
-  archived: boolean;
-  favorite: boolean;
-  versions: NoteVersion[];
+  pinned?: boolean;
+  archived?: boolean;
+  favorite?: boolean;
+  versions?: NoteVersion[];
   dueDate?: string;
   completed?: boolean;
 }
