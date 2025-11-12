@@ -97,23 +97,25 @@ find_available_port() {
     local start_port=$1
     local port=$start_port
     
-    print_step "Checking if port $port is available..."
+    # Send messages to stderr so they don't get captured in output
+    print_step "Checking if port $port is available..." >&2
     
     while ! check_port $port; do
-        print_warning "Port $port is in use, trying next port..."
+        print_warning "Port $port is in use, trying next port..." >&2
         port=$((port + 1))
         if [[ $port -gt 65535 ]]; then
-            print_error "No available ports found"
+            print_error "No available ports found" >&2
             exit 1
         fi
     done
     
     if [[ $port -ne $start_port ]]; then
-        print_success "Found available port: $port"
+        print_success "Found available port: $port" >&2
     else
-        print_success "Port $port is available"
+        print_success "Port $port is available" >&2
     fi
     
+    # Only echo the port number to stdout
     echo $port
 }
 
