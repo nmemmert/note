@@ -5,7 +5,7 @@ export interface Note {
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
-  notebookId: string;
+  notebookId?: string;
   pinned: boolean;
   archived: boolean;
   favorite: boolean;
