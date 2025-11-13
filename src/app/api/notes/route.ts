@@ -52,29 +52,44 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { title, content, notebookId, tags, pinned, archived, favorite, dueDate, completed } = body;
 
-    // Ensure the notebook exists and belongs to the user, or create 'general' if it doesn't exist
-    let notebook = await prisma.notebook.findUnique({
-      where: {
-        id_userId: {
-          id: notebookId || 'general',
-          userId: session.user.id
-        }
-      }
-    })
+    // Ensure default notebooks exist for the user
+    const defaultNotebooks = [
+      { id: 'general', name: 'General', description: 'General notes and ideas', color: '#3b82f6', icon: '📝' },
+      { id: 'personal', name: 'Personal', description: 'Personal notes and reminders', color: '#10b981', icon: '👤' },
+      { id: 'work', name: 'Work', description: 'Work-related notes and tasks', color: '#f59e0b', icon: '💼' },
+    ];
 
-    // If notebook doesn't exist and it's 'general', create it
-    if (!notebook && (notebookId === 'general' || !notebookId)) {
-      notebook = await prisma.notebook.create({
-        data: {
-          id: 'general',
-          name: 'General',
-          description: 'Default notebook for your notes',
-          color: '#3b82f6',
-          icon: '📝',
+    // Create default notebooks if they don't exist
+    for (const defaultNotebook of defaultNotebooks) {
+      await prisma.notebook.upsert({
+        where: {
+          id_userId: {
+            id: defaultNotebook.id,
+            userId: session.user.id
+          }
+        },
+        update: {},
+        create: {
+          id: defaultNotebook.id,
+          name: defaultNotebook.name,
+          description: defaultNotebook.description,
+          color: defaultNotebook.color,
+          icon: defaultNotebook.icon,
           userId: session.user.id,
         }
       });
     }
+
+    // Get the target notebook
+    const targetNotebookId = notebookId || 'general';
+    const notebook = await prisma.notebook.findUnique({
+      where: {
+        id_userId: {
+          id: targetNotebookId,
+          userId: session.user.id
+        }
+      }
+    });
 
     if (!notebook) {
       return NextResponse.json(
@@ -87,7 +102,7 @@ export async function POST(request: NextRequest) {
       data: {
         title: title || 'Untitled',
         content: content || '',
-        notebookId: notebookId || 'general',
+        notebookId: targetNotebookId,
         tags: Array.isArray(tags) ? tags.join(',') : '',
         pinned: pinned || false,
         archived: archived || false,
