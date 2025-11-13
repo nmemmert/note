@@ -17,9 +17,9 @@ export async function GET() {
 
     // Ensure default notebooks exist for every user
     const defaultNotebooks = [
-      { id: 'general', name: 'General', description: 'General notes and ideas', color: '#3b82f6', icon: '📝' },
-      { id: 'personal', name: 'Personal', description: 'Personal notes and reminders', color: '#10b981', icon: '👤' },
-      { id: 'work', name: 'Work', description: 'Work-related notes and tasks', color: '#f59e0b', icon: '💼' },
+      { id: 'general', name: 'General', color: '#3b82f6', icon: '📝' },
+      { id: 'personal', name: 'Personal', color: '#10b981', icon: '👤' },
+      { id: 'work', name: 'Work', color: '#f59e0b', icon: '💼' },
     ];
 
     // Create default notebooks if they don't exist using upsert
@@ -35,7 +35,6 @@ export async function GET() {
         create: {
           id: defaultNotebook.id,
           name: defaultNotebook.name,
-          description: defaultNotebook.description,
           color: defaultNotebook.color,
           icon: defaultNotebook.icon,
           userId: session.user.id,
