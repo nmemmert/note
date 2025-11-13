@@ -54,9 +54,9 @@ export async function POST(request: NextRequest) {
 
     // Ensure default notebooks exist for the user
     const defaultNotebooks = [
-      { id: 'general', name: 'General', color: '#3b82f6', icon: '📝' },
-      { id: 'personal', name: 'Personal', color: '#10b981', icon: '👤' },
-      { id: 'work', name: 'Work', color: '#f59e0b', icon: '💼' },
+      { id: 'general', name: 'General', icon: '📝' },
+      { id: 'personal', name: 'Personal', icon: '👤' },
+      { id: 'work', name: 'Work', icon: '💼' },
     ];
 
     // Create default notebooks if they don't exist
@@ -72,7 +72,6 @@ export async function POST(request: NextRequest) {
         create: {
           id: defaultNotebook.id,
           name: defaultNotebook.name,
-          color: defaultNotebook.color,
           icon: defaultNotebook.icon,
           userId: session.user.id,
         }
