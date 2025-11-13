@@ -533,7 +533,7 @@ export default function UserSettings({
                     📝
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">NoteMaster</h3>
-                  <p className="text-gray-600 mb-6">Version 1.0.0</p>
+                  <p className="text-gray-600 mb-6">Version 1.5.0</p>
                   
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-left max-w-md mx-auto">
                     <p className="text-sm text-gray-700 mb-4">
