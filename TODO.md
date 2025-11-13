@@ -57,14 +57,14 @@ Last Updated: November 12, 2025
 ## 🚀 Remaining Features
 
 ### 1. Collaboration & Sharing
-- [ ] Share links (public URLs for notes)
+- [x] Share links (public URLs for notes)
 - [ ] Comments system (threaded comments on notes)
 - [ ] Public/private toggle for individual notes
 - [ ] Collaborative editing (real-time with Socket.io)
 - [ ] Share permissions (view-only, edit, admin)
 - [ ] Activity feed (see who edited what)
-- [ ] Version control (track changes, restore previous versions)
-- [ ] Share via email invitation
+- [x] Version control (track changes, restore previous versions)
+- [x] Share via email invitation
 
 ### 2. Productivity Features
 - [x] Pomodoro timer
@@ -78,15 +78,14 @@ Last Updated: November 12, 2025
 
 ### 3. Media & Content
 - [ ] Audio recording (record voice notes directly)
-- [ ] Video embeds (YouTube, Vimeo support)
+- [x] Video embeds (YouTube, Vimeo support)
 - [ ] PDF viewer (view PDFs inline)
 - [ ] Diagram editor (flowcharts, mind maps)
-- [ ] LaTeX support (mathematical equations)
-- [ ] Mermaid diagrams (flowcharts as code)
+- [x] LaTeX support (mathematical equations)
+- [x] Mermaid diagrams (flowcharts as code)
 - [ ] Image annotations (draw on images)
-- [ ] Code syntax highlighting (for code blocks)
+- [x] Code syntax highlighting (for code blocks)
 - [ ] Table editor (improved table creation/editing)
-- [ ] Drawing canvas (freehand sketches)
 
 ### 4. Advanced Search
 - [ ] Saved searches (bookmark complex queries)

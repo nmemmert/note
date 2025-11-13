@@ -32,6 +32,7 @@ import RelatedNotes from '../components/RelatedNotes';
 import WritingSuggestions from '../components/WritingSuggestions';
 import AutoSummary from '../components/AutoSummary';
 import HelpCenter from '../components/HelpCenter';
+import ShareDialog from '../components/ShareDialog';
 
 // Global function to update note tags
 declare global {
@@ -94,6 +95,7 @@ export default function Home() {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showWebClipper, setShowWebClipper] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const [showUpNoteImporter, setShowUpNoteImporter] = useState(false);
   const [searchFilters, setSearchFilters] = useState({
     dateFrom: '',
@@ -265,6 +267,28 @@ export default function Home() {
     }
   };  const updateNote = useCallback(async (id: string, updates: Partial<Note>) => {
     try {
+      const currentNote = notes.find(n => n.id === id);
+      
+      // Create version snapshot if content or title changed
+      const shouldCreateVersion = currentNote && (
+        (updates.content && updates.content !== currentNote.content) ||
+        (updates.title && updates.title !== currentNote.title)
+      );
+      
+      if (shouldCreateVersion) {
+        // Save current state as a version before updating
+        await fetch(`/api/notes/${id}/versions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: currentNote.title,
+            content: currentNote.content,
+            tags: currentNote.tags,
+            notebookId: currentNote.notebookId,
+          }),
+        });
+      }
+      
       // Optimistically update the UI
       setNotes(prevNotes => prevNotes.map(note => {
         if (note.id === id) {
@@ -298,7 +322,7 @@ export default function Home() {
       console.error('Error updating note:', error);
       showToast('Failed to save note', 'error');
     }
-  }, []);
+  }, [notes]);
 
   const togglePinNote = (id: string) => {
     const note = notes.find(n => n.id === id);
@@ -482,6 +506,24 @@ export default function Home() {
       setCharCount(0);
     }
   }, [activeNote?.content]);
+
+  const loadVersions = async (noteId: string) => {
+    try {
+      const response = await fetch(`/api/notes/${noteId}/versions`);
+      if (response.ok) {
+        const data = await response.json();
+        // Update the active note with loaded versions
+        setActiveNote(prev => {
+          if (prev && prev.id === noteId) {
+            return { ...prev, versions: data.versions };
+          }
+          return prev;
+        });
+      }
+    } catch (error) {
+      console.error('Error loading versions:', error);
+    }
+  };
 
   const restoreVersion = (noteId: string, version: NoteVersion) => {
     updateNote(noteId, {
@@ -690,6 +732,7 @@ export default function Home() {
     { id: 'backup', label: 'Backup & Restore', icon: '💾', action: () => setShowBackupDialog(true), category: 'Data', keywords: ['export', 'save'] },
     { id: 'import', label: 'Import from UpNote', icon: '📥', action: () => setShowUpNoteImporter(true), category: 'Data', keywords: ['import', 'migrate'] },
     { id: 'export', label: 'Export Note', icon: '📤', action: () => setShowExportDialog(true), category: 'Data', keywords: ['download', 'save'] },
+    { id: 'share', label: 'Share Note', icon: '🔗', action: () => setShowShareDialog(true), category: 'Data', keywords: ['link', 'public', 'email'] },
     
     // Notebooks
     { id: 'new-notebook', label: 'New Notebook', icon: '📚', action: () => setShowNewNotebookDialog(true), category: 'Notebooks', keywords: ['create', 'folder'] },
@@ -1227,11 +1270,23 @@ export default function Home() {
                     👁️ Focus
                   </button>
                   <button
-                    onClick={() => setShowVersionHistory(true)}
+                    onClick={() => {
+                      if (activeNote) {
+                        loadVersions(activeNote.id);
+                        setShowVersionHistory(true);
+                      }
+                    }}
                     className="text-blue-600 hover:text-blue-800 text-sm px-3 py-1 rounded-lg hover:bg-blue-50 transition-all"
                     title="Version History"
                   >
                     📚 History
+                  </button>
+                  <button
+                    onClick={() => setShowShareDialog(true)}
+                    className="text-purple-600 hover:text-purple-800 text-sm px-3 py-1 rounded-lg hover:bg-purple-50 transition-all"
+                    title="Share Note"
+                  >
+                    🔗 Share
                   </button>
                   <button
                     onClick={() => setShowExportDialog(true)}
@@ -1468,6 +1523,14 @@ export default function Home() {
         onClose={() => setShowExportDialog(false)}
         note={activeNote}
       />
+
+      {showShareDialog && activeNote && (
+        <ShareDialog
+          noteId={activeNote.id}
+          noteTitle={activeNote.title}
+          onClose={() => setShowShareDialog(false)}
+        />
+      )}
 
       <UpNoteImporter
         isOpen={showUpNoteImporter}
