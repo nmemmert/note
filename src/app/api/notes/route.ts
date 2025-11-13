@@ -52,8 +52,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { title, content, notebookId, tags, pinned, archived, favorite, dueDate, completed } = body;
 
-    // Ensure the notebook exists and belongs to the user
-    const notebook = await prisma.notebook.findUnique({
+    // Ensure the notebook exists and belongs to the user, or create 'general' if it doesn't exist
+    let notebook = await prisma.notebook.findUnique({
       where: {
         id_userId: {
           id: notebookId || 'general',
@@ -61,6 +61,20 @@ export async function POST(request: NextRequest) {
         }
       }
     })
+
+    // If notebook doesn't exist and it's 'general', create it
+    if (!notebook && (notebookId === 'general' || !notebookId)) {
+      notebook = await prisma.notebook.create({
+        data: {
+          id: 'general',
+          name: 'General',
+          description: 'Default notebook for your notes',
+          color: '#3b82f6',
+          icon: '📝',
+          userId: session.user.id,
+        }
+      });
+    }
 
     if (!notebook) {
       return NextResponse.json(
