@@ -62,6 +62,12 @@ chmod +x install.sh && ./install.sh
 - ✅ Configure reverse proxy and firewall
 - ✅ Automatically detect and use available ports
 - ✅ Create backup scripts
+- ✅ **Ask for your domain name** (for share links)
+- ✅ **Optionally configure email** (for invitations)
+
+During installation, you'll be prompted for:
+- **Domain Name**: Your domain (e.g., notes.example.com) or leave blank to use IP
+- **Email Setup**: Optional SMTP configuration for sending invitation emails
 
 Access at: `http://localhost:3000` or `http://YOUR_SERVER_IP`
 
@@ -198,6 +204,34 @@ Features:
 - Optional database removal
 - Keeps all backups in `/var/backups/notemaster/`
 
+### Configure Email for Invitations
+
+To enable email invitations after installation, add to your `.env` file:
+
+```bash
+# Free SMTP Services:
+# Gmail: smtp.gmail.com:587 (use App Password, not regular password)
+# SendGrid: smtp.sendgrid.net:587 (100 emails/day free)
+# Mailgun: smtp.mailgun.org:587 (5000 emails/month free)
+# Brevo: smtp-relay.brevo.com:587 (300 emails/day free)
+
+EMAIL_SERVER_HOST=smtp.gmail.com
+EMAIL_SERVER_PORT=587
+EMAIL_SERVER_USER=your-email@gmail.com
+EMAIL_SERVER_PASSWORD=your-app-password
+EMAIL_FROM=your-email@gmail.com
+```
+
+Then restart the app:
+```bash
+pm2 restart notemaster
+```
+
+**Gmail Setup**: 
+1. Go to Google Account → Security → 2-Step Verification
+2. Scroll to "App passwords" → Generate new app password
+3. Use this 16-character password in `EMAIL_SERVER_PASSWORD`
+
 ## Usage
 
 ### Creating and Editing Notes
@@ -206,6 +240,13 @@ Features:
 - **Rich Text Editing**: Use the formatting toolbar for bold, italic, lists, etc.
 - **Markdown Mode**: Toggle to markdown editing for code-friendly writing
 - **Categories & Tags**: Organize notes with categories and comma-separated tags
+
+### Sharing Notes (v1.5.0)
+
+- **Generate Share Link**: Click the share button to create a public link
+- **Email Invitations**: Send email invitations to collaborators (requires email setup)
+- **Version Control**: View and restore previous versions of notes
+- **Rich Media**: Embed videos, LaTeX formulas, and Mermaid diagrams
 
 ### Organization Features
 
