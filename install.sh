@@ -20,6 +20,11 @@ APP_DIR="$HOME/notemaster"
 DEFAULT_PORT=3000
 POSTGRES_PORT=5432
 APP_PORT=$DEFAULT_PORT
+DOMAIN=""
+EMAIL_HOST=""
+EMAIL_PORT=""
+EMAIL_USER=""
+EMAIL_PASS=""
 
 #############################################
 # Utility Functions
@@ -73,6 +78,56 @@ check_ubuntu() {
         fi
     fi
     print_success "Running on $ID $VERSION_ID"
+}
+
+prompt_domain() {
+    print_step "Domain Configuration"
+    echo ""
+    echo -e "${YELLOW}Enter your domain name (or press Enter to use IP address):${NC}"
+    echo -e "${BLUE}Examples: notemaster.example.com or leave blank for IP-based access${NC}"
+    read -p "Domain: " DOMAIN
+    
+    if [[ -z "$DOMAIN" ]]; then
+        DOMAIN=$(hostname -I | awk '{print $1}')
+        print_success "Using IP address: $DOMAIN"
+    else
+        print_success "Using domain: $DOMAIN"
+    fi
+    echo ""
+}
+
+prompt_email() {
+    print_step "Email Configuration (for sharing and invitations)"
+    echo ""
+    echo -e "${YELLOW}Configure email sending? This enables share links and email invitations (y/N):${NC}"
+    read -p "Setup email? " -n 1 -r
+    echo
+    
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo ""
+        echo -e "${BLUE}Recommended free SMTP services:${NC}"
+        echo "  1. Gmail (smtp.gmail.com:587) - Use App Password"
+        echo "  2. SendGrid (smtp.sendgrid.net:587) - 100 emails/day free"
+        echo "  3. Mailgun (smtp.mailgun.org:587) - 5000 emails/month free"
+        echo "  4. Brevo/Sendinblue (smtp-relay.brevo.com:587) - 300 emails/day free"
+        echo ""
+        
+        read -p "SMTP Host (e.g., smtp.gmail.com): " EMAIL_HOST
+        read -p "SMTP Port (usually 587 or 465): " EMAIL_PORT
+        read -p "Email Username/Address: " EMAIL_USER
+        read -sp "Email Password/API Key: " EMAIL_PASS
+        echo ""
+        
+        if [[ -n "$EMAIL_HOST" ]] && [[ -n "$EMAIL_PORT" ]] && [[ -n "$EMAIL_USER" ]] && [[ -n "$EMAIL_PASS" ]]; then
+            print_success "Email configuration saved"
+        else
+            print_warning "Email configuration incomplete, skipping email setup"
+            EMAIL_HOST=""
+        fi
+    else
+        print_warning "Skipping email configuration"
+    fi
+    echo ""
 }
 
 check_port() {
@@ -293,8 +348,13 @@ create_env_file() {
     # Generate NextAuth secret
     NEXTAUTH_SECRET=$(openssl rand -base64 32)
     
-    # Get server IP
-    SERVER_IP=$(hostname -I | awk '{print $1}')
+    # Determine base URL
+    if [[ -z "$DOMAIN" ]]; then
+        SERVER_IP=$(hostname -I | awk '{print $1}')
+        BASE_URL="http://${SERVER_IP}"
+    else
+        BASE_URL="http://${DOMAIN}"
+    fi
     
     # Create .env file
     cat > "$APP_DIR/.env" <<EOF
@@ -302,13 +362,28 @@ create_env_file() {
 DATABASE_URL="postgresql://notemaster:${DB_PASSWORD}@localhost:5432/notemaster"
 
 # NextAuth Configuration
-NEXTAUTH_URL="http://localhost:${APP_PORT}"
+NEXTAUTH_URL="${BASE_URL}:${APP_PORT}"
 NEXTAUTH_SECRET="${NEXTAUTH_SECRET}"
 
 # App Configuration
 NODE_ENV=production
 PORT=${APP_PORT}
+NEXT_PUBLIC_APP_URL="${BASE_URL}:${APP_PORT}"
 EOF
+
+    # Add email configuration if provided
+    if [[ -n "$EMAIL_HOST" ]]; then
+        cat >> "$APP_DIR/.env" <<EOF
+
+# Email Configuration
+EMAIL_SERVER_HOST="${EMAIL_HOST}"
+EMAIL_SERVER_PORT="${EMAIL_PORT}"
+EMAIL_SERVER_USER="${EMAIL_USER}"
+EMAIL_SERVER_PASSWORD="${EMAIL_PASS}"
+EMAIL_FROM="${EMAIL_USER}"
+EOF
+        print_success "Email configuration added to .env"
+    fi
 
     chmod 600 "$APP_DIR/.env"
     print_success "Environment file created"
@@ -355,14 +430,18 @@ build_application() {
 configure_nginx() {
     print_step "Configuring Nginx reverse proxy..."
     
-    # Get server IP
-    SERVER_IP=$(hostname -I | awk '{print $1}')
+    # Use domain or IP
+    if [[ -z "$DOMAIN" ]]; then
+        SERVER_NAME=$(hostname -I | awk '{print $1}')
+    else
+        SERVER_NAME="$DOMAIN"
+    fi
     
     # Create Nginx configuration
     sudo tee /etc/nginx/sites-available/notemaster > /dev/null <<EOF
 server {
     listen 80;
-    server_name ${SERVER_IP} localhost;
+    server_name ${SERVER_NAME} localhost;
 
     client_max_body_size 50M;
 
@@ -396,7 +475,7 @@ EOF
     # Reload Nginx
     sudo systemctl reload nginx
     
-    print_success "Nginx configured"
+    print_success "Nginx configured for ${SERVER_NAME}"
 }
 
 start_application() {
@@ -477,13 +556,31 @@ print_summary() {
     echo ""
     
     SERVER_IP=$(hostname -I | awk '{print $1}')
+    local ACCESS_URL
+    
+    if [[ -z "$DOMAIN" ]]; then
+        ACCESS_URL="http://${SERVER_IP}"
+    else
+        ACCESS_URL="http://${DOMAIN}"
+    fi
     
     print_success "NoteMaster is now running!"
     echo ""
     echo -e "${GREEN}Access your app at:${NC}"
-    echo -e "  ${BLUE}http://localhost:${APP_PORT}${NC}"
-    echo -e "  ${BLUE}http://${SERVER_IP}${NC} (from other devices on your network)"
+    echo -e "  ${BLUE}${ACCESS_URL}:${APP_PORT}${NC}"
+    echo -e "  ${BLUE}http://localhost:${APP_PORT}${NC} (from this machine)"
     echo ""
+    
+    if [[ -n "$EMAIL_HOST" ]]; then
+        echo -e "${GREEN}✓ Email configured:${NC} Share links and invitations enabled"
+        echo -e "  SMTP: ${EMAIL_HOST}:${EMAIL_PORT}"
+        echo ""
+    else
+        echo -e "${YELLOW}⚠ Email not configured:${NC} Share links will work, but email invitations disabled"
+        echo -e "  To add email later, edit ${BLUE}$APP_DIR/.env${NC} and restart"
+        echo ""
+    fi
+    
     echo -e "${GREEN}Application directory:${NC}"
     echo -e "  ${BLUE}$APP_DIR${NC}"
     echo ""
@@ -505,13 +602,37 @@ print_summary() {
     
     echo -e "${YELLOW}Next steps:${NC}"
     echo "  1. Create your first user account"
-    echo "  2. (Optional) Set up SSL certificate for HTTPS"
+    
+    if [[ -n "$DOMAIN" ]]; then
+        echo "  2. Set up SSL certificate for HTTPS:"
+        echo -e "     ${BLUE}sudo apt install certbot python3-certbot-nginx${NC}"
+        echo -e "     ${BLUE}sudo certbot --nginx -d $DOMAIN${NC}"
+    else
+        echo "  2. (Optional) Set up a domain name and SSL certificate"
+    fi
+    
     echo "  3. (Optional) Configure automatic backups with cron"
     echo ""
-    echo -e "${GREEN}Setup SSL (optional):${NC}"
-    echo "  If you have a domain name:"
-    echo -e "  ${BLUE}sudo certbot --nginx -d yourdomain.com${NC}"
-    echo ""
+    
+    if [[ -z "$EMAIL_HOST" ]]; then
+        echo -e "${YELLOW}To enable email invitations later:${NC}"
+        echo "  Free SMTP options:"
+        echo "    • Gmail: smtp.gmail.com:587 (use App Password)"
+        echo "    • SendGrid: smtp.sendgrid.net:587 (100/day free)"
+        echo "    • Mailgun: smtp.mailgun.org:587 (5000/month free)"
+        echo "    • Brevo: smtp-relay.brevo.com:587 (300/day free)"
+        echo ""
+        echo "  Add to ${BLUE}$APP_DIR/.env${NC}:"
+        echo "    EMAIL_SERVER_HOST=smtp.gmail.com"
+        echo "    EMAIL_SERVER_PORT=587"
+        echo "    EMAIL_SERVER_USER=your@email.com"
+        echo "    EMAIL_SERVER_PASSWORD=your-password"
+        echo "    EMAIL_FROM=your@email.com"
+        echo ""
+        echo "  Then restart: ${BLUE}pm2 restart notemaster${NC}"
+        echo ""
+    fi
+    
     echo -e "${GREEN}Setup automatic daily backups (optional):${NC}"
     echo -e "  ${BLUE}(crontab -l 2>/dev/null; echo \"0 2 * * * $APP_DIR/backup.sh\") | crontab -${NC}"
     echo ""
@@ -527,6 +648,10 @@ main() {
     # Pre-flight checks
     check_root
     check_ubuntu
+    
+    # Configuration prompts
+    prompt_domain
+    prompt_email
     
     # Find available port
     APP_PORT=$(find_available_port $DEFAULT_PORT)
