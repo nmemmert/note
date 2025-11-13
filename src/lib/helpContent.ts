@@ -38,7 +38,11 @@ export const helpArticles: HelpArticle[] = [
         <li>🏷️ Tag system for easy categorization</li>
         <li>🔍 Powerful search across all notes</li>
         <li>🤖 AI-powered insights and suggestions</li>
-        <li>🔐 Secure authentication and data encryption</li>
+        <li>� Share notes with public links</li>
+        <li>📚 Automatic version control and history</li>
+        <li>🎨 Rich media support (videos, LaTeX, diagrams)</li>
+        <li>📧 Email invitations for note sharing</li>
+        <li>�🔐 Secure authentication and data encryption</li>
       </ul>
 
       <h3>Interface Overview</h3>
@@ -671,7 +675,7 @@ export const helpArticles: HelpArticle[] = [
     title: 'Export and Backup',
     description: 'Save your notes in different formats',
     icon: '📤',
-    keywords: ['export', 'backup', 'save', 'download', 'pdf', 'markdown'],
+    keywords: ['export', 'backup', 'save', 'download', 'markdown'],
     relatedArticles: ['import', 'backup'],
     content: `
       <h2>Export Options</h2>
@@ -679,18 +683,20 @@ export const helpArticles: HelpArticle[] = [
 
       <h3>Supported Export Formats</h3>
       
-      <h4>📄 PDF</h4>
-      <ul>
-        <li>Preserves formatting and layout</li>
-        <li>Perfect for printing and sharing</li>
-        <li>Includes images and formatting</li>
-      </ul>
-
-      <h4>📝 Markdown (.md)</h4>
+      <h4>� Markdown (.md)</h4>
       <ul>
         <li>Plain text with formatting markers</li>
         <li>Compatible with many apps</li>
         <li>Easy to version control</li>
+        <li>Preserves basic formatting</li>
+      </ul>
+
+      <h4>🌐 HTML (.html)</h4>
+      <ul>
+        <li>Web-ready format</li>
+        <li>Preserves all formatting</li>
+        <li>Can be opened in browsers</li>
+        <li>Includes inline styles</li>
       </ul>
 
       <h4>📋 Plain Text (.txt)</h4>
@@ -700,46 +706,28 @@ export const helpArticles: HelpArticle[] = [
         <li>Smallest file size</li>
       </ul>
 
-      <h4>🌐 HTML (.html)</h4>
-      <ul>
-        <li>Web-ready format</li>
-        <li>Preserves all formatting</li>
-        <li>Can be opened in browsers</li>
-      </ul>
-
       <h4>📊 JSON</h4>
       <ul>
         <li>Machine-readable format</li>
-        <li>Includes all metadata</li>
-        <li>For programmatic use</li>
+        <li>Includes all metadata (tags, category, timestamps)</li>
+        <li>Perfect for programmatic use or backups</li>
       </ul>
 
       <h3>How to Export</h3>
       <ol>
         <li>Open the note you want to export</li>
-        <li>Click the "Export" button in the toolbar</li>
-        <li>Choose your preferred format</li>
+        <li>Click the "Export" button (download icon) in the toolbar</li>
+        <li>Choose your preferred format from the dropdown</li>
         <li>Click "Export"</li>
-        <li>Choose save location</li>
+        <li>The file will be downloaded to your browser's download folder</li>
       </ol>
 
-      <h3>Bulk Export</h3>
-      <p>To export multiple notes:</p>
-      <ol>
-        <li>Go to Settings → Export</li>
-        <li>Select "Bulk Export"</li>
-        <li>Choose notebooks or tags to include</li>
-        <li>Select format</li>
-        <li>Export as ZIP file</li>
-      </ol>
-
-      <h3>Automatic Backups</h3>
-      <p>Enable automatic backups in Settings:</p>
+      <h3>Tips for Exporting</h3>
       <ul>
-        <li>Daily backup to cloud storage</li>
-        <li>Backup to local folder</li>
-        <li>Configurable retention period</li>
-        <li>Encrypted backups for security</li>
+        <li><strong>Markdown:</strong> Best for migrating to other note-taking apps</li>
+        <li><strong>HTML:</strong> Best for sharing formatted notes via web</li>
+        <li><strong>Plain Text:</strong> Best for reading content without formatting</li>
+        <li><strong>JSON:</strong> Best for backups with full metadata preservation</li>
       </ul>
     `
   },
@@ -802,11 +790,11 @@ export const helpArticles: HelpArticle[] = [
         <li><strong>Password Protection:</strong> Require password to open</li>
       </ul>
 
-      <h3>Data & Sync</h3>
+      <h3>Data & Storage</h3>
       <ul>
-        <li><strong>Cloud Sync:</strong> Sync across devices</li>
-        <li><strong>Backup Schedule:</strong> Automatic backup frequency</li>
-        <li><strong>Storage Location:</strong> Where notes are stored</li>
+        <li><strong>Local Storage:</strong> Notes stored in browser IndexedDB</li>
+        <li><strong>Export Backups:</strong> Manually export notes as JSON for backup</li>
+        <li><strong>Clear Data:</strong> Option to reset and clear all notes (use with caution)</li>
       </ul>
     `
   },
@@ -974,7 +962,7 @@ export const helpArticles: HelpArticle[] = [
       <ul>
         <li>Sorted by last modified</li>
         <li>Accessible from any notebook</li>
-        <li>Synced across devices</li>
+        <li>Stored locally in your browser</li>
         <li>Searchable like regular notes</li>
       </ul>
 
@@ -1038,11 +1026,12 @@ export const helpArticles: HelpArticle[] = [
       <p><strong>Problem:</strong> Changes aren't being saved</p>
       <p><strong>Solutions:</strong></p>
       <ul>
-        <li>Check your internet connection (if using cloud sync)</li>
+        <li>Check browser storage quota (Settings → Storage)</li>
         <li>Verify you're logged in</li>
         <li>Try refreshing the page</li>
         <li>Check browser console for errors</li>
         <li>Clear browser cache and reload</li>
+        <li>Ensure browser allows IndexedDB storage</li>
       </ul>
 
       <h3>Search Not Working</h3>
@@ -1100,15 +1089,15 @@ export const helpArticles: HelpArticle[] = [
         <li>Disable browser privacy extensions temporarily</li>
       </ul>
 
-      <h3>Data Not Syncing</h3>
-      <p><strong>Problem:</strong> Changes not syncing between devices</p>
+      <h3>Data Storage Issues</h3>
+      <p><strong>Problem:</strong> Notes not saving or loading</p>
       <p><strong>Solutions:</strong></p>
       <ul>
-        <li>Verify internet connection on both devices</li>
-        <li>Check sync is enabled in Settings</li>
-        <li>Force sync from Settings</li>
-        <li>Make sure you're logged into the same account</li>
-        <li>Wait a few minutes for sync to complete</li>
+        <li>Check browser storage quota (Settings → Storage)</li>
+        <li>Clear browser cache and reload page</li>
+        <li>Ensure browser allows local storage for this site</li>
+        <li>Try exporting notes as backup before troubleshooting</li>
+        <li>Check browser console for error messages</li>
       </ul>
 
       <h3>Still Need Help?</h3>
@@ -1308,16 +1297,15 @@ export const helpArticles: HelpArticle[] = [
         <li><strong>Tags:</strong> All tags applied</li>
         <li><strong>Notebook:</strong> Notebook assignment</li>
         <li><strong>Timestamp:</strong> When version was created</li>
-        <li><strong>Author:</strong> Who made the changes (multi-user)</li>
       </ul>
 
       <h3>Use Cases</h3>
       <ul>
         <li><strong>Accidental deletions:</strong> Restore content you accidentally removed</li>
         <li><strong>Experimentation:</strong> Try different approaches and revert if needed</li>
-        <li><strong>Collaboration:</strong> Track who changed what and when</li>
+        <li><strong>Document evolution:</strong> Track how your thinking evolved over time</li>
         <li><strong>Audit trail:</strong> Maintain history for important documents</li>
-        <li><strong>Learning:</strong> Review how your thinking evolved</li>
+        <li><strong>Peace of mind:</strong> Never worry about losing work</li>
       </ul>
 
       <h3>Best Practices</h3>

@@ -141,8 +141,11 @@ Last Updated: November 12, 2025
 ### Integrations
 - [ ] Google Drive sync
 - [ ] Dropbox backup
+- [ ] OneDrive integration
+- [ ] seafile storage
 - [ ] GitHub integration (sync with repos)
 - [ ] Slack notifications
+- [ ] Microsoft Teams integration
 - [ ] Zapier webhooks
 - [ ] Calendar integration (link notes to events)
 - [ ] Email to note (create notes via email)
