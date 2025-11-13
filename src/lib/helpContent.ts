@@ -1121,4 +1121,333 @@ export const helpArticles: HelpArticle[] = [
       </ul>
     `
   },
+
+  // NEW v1.5.0 Features
+  {
+    id: 'sharing-notes',
+    category: 'collaboration',
+    title: 'Sharing Notes with Public Links',
+    description: 'Share your notes with anyone using public links',
+    icon: '🔗',
+    keywords: ['share', 'link', 'public', 'collaborate', 'url', 'sharing'],
+    relatedArticles: ['email-invitations', 'version-control'],
+    content: `
+      <h2>Share Your Notes</h2>
+      <p>NoteMaster v1.5.0 introduces powerful sharing capabilities. Share any note with colleagues, friends, or the public using secure share links.</p>
+
+      <h3>How to Generate a Share Link</h3>
+      <ol>
+        <li>Open the note you want to share</li>
+        <li>Click the <strong>🔗 Share</strong> button in the toolbar</li>
+        <li>Choose an expiration option (optional):
+          <ul>
+            <li>Never expires (default)</li>
+            <li>1 day</li>
+            <li>7 days</li>
+            <li>30 days</li>
+            <li>90 days</li>
+          </ul>
+        </li>
+        <li>Click <strong>"Generate Share Link"</strong></li>
+        <li>Copy the link and share it!</li>
+      </ol>
+
+      <h3>Quick Access</h3>
+      <ul>
+        <li>Use Command Palette: <kbd>Ctrl+P</kbd> → type "share"</li>
+        <li>Toolbar button: <strong>🔗 Share</strong></li>
+      </ul>
+
+      <h3>Link Security</h3>
+      <ul>
+        <li><strong>Unique tokens:</strong> Each link uses a cryptographically secure 64-character token</li>
+        <li><strong>Read-only:</strong> Shared notes cannot be edited by viewers</li>
+        <li><strong>Expiration:</strong> Links automatically expire based on your settings</li>
+        <li><strong>Revocable:</strong> You can delete share links at any time</li>
+      </ul>
+
+      <h3>What Viewers See</h3>
+      <p>When someone opens your share link, they'll see:</p>
+      <ul>
+        <li>Note title and content (read-only)</li>
+        <li>Tags associated with the note</li>
+        <li>Creation and update dates</li>
+        <li>Clean, distraction-free interface</li>
+        <li>Link to try NoteMaster</li>
+      </ul>
+
+      <h3>Sharing Tips</h3>
+      <ul>
+        <li>Use expiration dates for sensitive information</li>
+        <li>Review note content before sharing</li>
+        <li>Share links work without authentication</li>
+        <li>Perfect for documentation, tutorials, and collaboration</li>
+      </ul>
+
+      <h3>Managing Share Links</h3>
+      <p>To revoke a share link:</p>
+      <ol>
+        <li>Open the Share dialog</li>
+        <li>Click "Generate New Link" to invalidate the old one</li>
+      </ol>
+    `
+  },
+
+  {
+    id: 'email-invitations',
+    category: 'collaboration',
+    title: 'Email Invitations',
+    description: 'Send notes directly via email with personalized invitations',
+    icon: '📧',
+    keywords: ['email', 'invite', 'send', 'invitation', 'share', 'mailto'],
+    relatedArticles: ['sharing-notes', 'version-control'],
+    content: `
+      <h2>Email Invitations</h2>
+      <p>Share notes directly via email with personalized messages and professional formatting.</p>
+
+      <h3>How to Send an Email Invitation</h3>
+      <ol>
+        <li>Generate a share link for your note</li>
+        <li>In the Share dialog, scroll to <strong>"📧 Send via Email"</strong></li>
+        <li>Enter recipient's email address</li>
+        <li>Add a personal message (optional)</li>
+        <li>Click <strong>"Send Email Invitation"</strong></li>
+      </ol>
+
+      <h3>Email Template</h3>
+      <p>Recipients receive a professionally formatted email containing:</p>
+      <ul>
+        <li>Your name and note title</li>
+        <li>Your personal message</li>
+        <li>Prominent "View Shared Note" button</li>
+        <li>NoteMaster branding</li>
+        <li>Clean, mobile-responsive design</li>
+      </ul>
+
+      <h3>Best Practices</h3>
+      <ul>
+        <li><strong>Personalize:</strong> Add context in your message</li>
+        <li><strong>Be specific:</strong> Mention why you're sharing</li>
+        <li><strong>Set expectations:</strong> Tell them what to expect</li>
+        <li><strong>Check content:</strong> Review note before sharing</li>
+      </ul>
+
+      <h3>Example Messages</h3>
+      <p><strong>For work:</strong><br>
+      "Here are the meeting notes from today's discussion. Please review and let me know if I missed anything."</p>
+      
+      <p><strong>For study groups:</strong><br>
+      "Check out my notes on Chapter 5. Hope this helps with the exam!"</p>
+      
+      <p><strong>For projects:</strong><br>
+      "Latest project documentation is ready. Take a look and share your feedback."</p>
+
+      <h3>Email Integration</h3>
+      <p><em>Note:</em> The email feature requires email service configuration (SendGrid, Nodemailer, etc.) for production use. In development, emails are logged to the console.</p>
+    `
+  },
+
+  {
+    id: 'version-control',
+    category: 'collaboration',
+    title: 'Version Control & History',
+    description: 'Track changes and restore previous versions of your notes',
+    icon: '📚',
+    keywords: ['version', 'history', 'restore', 'backup', 'changes', 'revisions'],
+    relatedArticles: ['sharing-notes', 'creating-notes'],
+    content: `
+      <h2>Version Control System</h2>
+      <p>Never lose work again! NoteMaster automatically tracks changes and lets you restore any previous version of your notes.</p>
+
+      <h3>Automatic Version Tracking</h3>
+      <p>Versions are automatically created when you:</p>
+      <ul>
+        <li>Change the note title</li>
+        <li>Modify note content</li>
+        <li>Update tags or notebook assignment</li>
+      </ul>
+      <p><em>Note:</em> Version snapshots are created periodically, not with every keystroke, to optimize performance.</p>
+
+      <h3>Viewing Version History</h3>
+      <ol>
+        <li>Open any note</li>
+        <li>Click <strong>📚 History</strong> in the toolbar</li>
+        <li>View all past versions with metadata:
+          <ul>
+            <li>Version number</li>
+            <li>Timestamp</li>
+            <li>Title at that time</li>
+            <li>Tags at that time</li>
+            <li>Notebook assignment</li>
+            <li>Content preview</li>
+          </ul>
+        </li>
+      </ol>
+
+      <h3>Restoring a Previous Version</h3>
+      <ol>
+        <li>Open the Version History dialog</li>
+        <li>Review the version you want to restore</li>
+        <li>Click the <strong>"Restore"</strong> button</li>
+        <li>Confirm restoration</li>
+      </ol>
+      <p><strong>Important:</strong> Restoring creates a new version with the old content, so you can always undo a restore.</p>
+
+      <h3>Version Limits</h3>
+      <ul>
+        <li>NoteMaster keeps the last <strong>50 versions</strong> per note</li>
+        <li>Oldest versions are automatically removed when limit is reached</li>
+        <li>Current version is always preserved</li>
+      </ul>
+
+      <h3>Version Metadata</h3>
+      <p>Each version stores:</p>
+      <ul>
+        <li><strong>Content:</strong> Full note text</li>
+        <li><strong>Title:</strong> Note title at that time</li>
+        <li><strong>Tags:</strong> All tags applied</li>
+        <li><strong>Notebook:</strong> Notebook assignment</li>
+        <li><strong>Timestamp:</strong> When version was created</li>
+        <li><strong>Author:</strong> Who made the changes (multi-user)</li>
+      </ul>
+
+      <h3>Use Cases</h3>
+      <ul>
+        <li><strong>Accidental deletions:</strong> Restore content you accidentally removed</li>
+        <li><strong>Experimentation:</strong> Try different approaches and revert if needed</li>
+        <li><strong>Collaboration:</strong> Track who changed what and when</li>
+        <li><strong>Audit trail:</strong> Maintain history for important documents</li>
+        <li><strong>Learning:</strong> Review how your thinking evolved</li>
+      </ul>
+
+      <h3>Best Practices</h3>
+      <ul>
+        <li>Check version history before major rewrites</li>
+        <li>Use descriptive titles to identify versions easily</li>
+        <li>Restore versions when needed, don't hesitate</li>
+        <li>Combine with regular backups for extra safety</li>
+      </ul>
+    `
+  },
+
+  {
+    id: 'media-content',
+    category: 'editing',
+    title: 'Rich Media Content',
+    description: 'Embed videos, math equations, and diagrams in your notes',
+    icon: '🎨',
+    keywords: ['media', 'video', 'math', 'latex', 'mermaid', 'diagram', 'embed'],
+    relatedArticles: ['rich-text-editor', 'markdown', 'creating-notes'],
+    content: `
+      <h2>Rich Media Support</h2>
+      <p>NoteMaster v1.5.0 includes powerful media embedding capabilities for professional documentation and technical notes.</p>
+
+      <h3>Video Embeds 🎥</h3>
+      <p>Embed videos directly in your notes:</p>
+      
+      <h4>Supported Platforms:</h4>
+      <ul>
+        <li><strong>YouTube:</strong> Full videos, playlists, and shorts</li>
+        <li><strong>Vimeo:</strong> Standard and private videos</li>
+      </ul>
+
+      <h4>How to Embed Videos:</h4>
+      <ol>
+        <li>Click the video button in the editor toolbar</li>
+        <li>Paste the YouTube or Vimeo URL</li>
+        <li>Video automatically embeds with responsive player</li>
+      </ol>
+
+      <h4>Manual Embed (Advanced):</h4>
+      <pre><code>&lt;iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID"&gt;&lt;/iframe&gt;</code></pre>
+
+      <h3>LaTeX Math Equations ∑</h3>
+      <p>Write beautiful mathematical equations using LaTeX syntax:</p>
+
+      <h4>Inline Math:</h4>
+      <p>Wrap equations in single dollar signs: <code>$E = mc^2$</code></p>
+      <p>Example: The equation $E = mc^2$ is Einstein's famous formula.</p>
+
+      <h4>Block Math:</h4>
+      <p>Wrap equations in double dollar signs for display mode:</p>
+      <pre><code>$$
+\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}
+$$</code></pre>
+
+      <h4>Common Math Symbols:</h4>
+      <ul>
+        <li>Fractions: <code>\\frac{a}{b}</code></li>
+        <li>Superscript: <code>x^2</code></li>
+        <li>Subscript: <code>x_i</code></li>
+        <li>Square root: <code>\\sqrt{x}</code></li>
+        <li>Summation: <code>\\sum_{i=1}^{n}</code></li>
+        <li>Integral: <code>\\int_{a}^{b}</code></li>
+        <li>Greek letters: <code>\\alpha, \\beta, \\gamma</code></li>
+      </ul>
+
+      <h4>Quick Insert:</h4>
+      <p>Click the <strong>∑</strong> button in the toolbar and choose inline or block math.</p>
+
+      <h3>Mermaid Diagrams 📊</h3>
+      <p>Create flowcharts, sequence diagrams, and more using Mermaid syntax:</p>
+
+      <h4>Flowcharts:</h4>
+      <pre><code>\`\`\`mermaid
+flowchart TD
+    A[Start] --&gt; B{Decision}
+    B --&gt;|Yes| C[Action 1]
+    B --&gt;|No| D[Action 2]
+\`\`\`</code></pre>
+
+      <h4>Sequence Diagrams:</h4>
+      <pre><code>\`\`\`mermaid
+sequenceDiagram
+    Alice-&gt;&gt;Bob: Hello!
+    Bob-&gt;&gt;Alice: Hi there!
+\`\`\`</code></pre>
+
+      <h4>Gantt Charts:</h4>
+      <pre><code>\`\`\`mermaid
+gantt
+    title Project Timeline
+    section Phase 1
+    Task 1: 2024-01-01, 30d
+    Task 2: after Task 1, 20d
+\`\`\`</code></pre>
+
+      <h4>Supported Diagram Types:</h4>
+      <ul>
+        <li>Flowcharts</li>
+        <li>Sequence diagrams</li>
+        <li>Gantt charts</li>
+        <li>Pie charts</li>
+        <li>Class diagrams</li>
+        <li>State diagrams</li>
+        <li>Entity-relationship diagrams</li>
+      </ul>
+
+      <h4>Quick Insert:</h4>
+      <p>Click the diagram button in the toolbar, choose diagram type, and edit the template.</p>
+
+      <h3>Code Syntax Highlighting 💻</h3>
+      <p>Enhanced code blocks with syntax highlighting:</p>
+      <pre><code>\`\`\`javascript
+function hello() {
+  console.log("Hello, World!");
+}
+\`\`\`</code></pre>
+
+      <p>Supported languages: JavaScript, Python, TypeScript, Java, C++, and many more!</p>
+
+      <h3>Tips for Rich Media</h3>
+      <ul>
+        <li>Use video embeds for tutorials and demonstrations</li>
+        <li>LaTeX is perfect for scientific and academic notes</li>
+        <li>Mermaid diagrams great for technical documentation</li>
+        <li>Combine media types for comprehensive notes</li>
+        <li>Preview your content before sharing</li>
+      </ul>
+    `
+  },
 ];
+
