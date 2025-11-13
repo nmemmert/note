@@ -16,8 +16,9 @@ const noteVersions = new Map<string, Array<{
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.email) {
@@ -25,7 +26,7 @@ export async function GET(
   }
 
   try {
-    const versions = noteVersions.get(params.id) || [];
+    const versions = noteVersions.get(id) || [];
     
     return NextResponse.json({
       versions: versions.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()),
@@ -38,8 +39,9 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.email) {
@@ -49,11 +51,11 @@ export async function POST(
   try {
     const { title, content, tags, notebookId } = await request.json();
     
-    const versions = noteVersions.get(params.id) || [];
+    const versions = noteVersions.get(id) || [];
     
     const newVersion = {
       id: `version-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      noteId: params.id,
+      noteId: id,
       title,
       content,
       tags: tags || [],
@@ -63,11 +65,11 @@ export async function POST(
     };
     
     versions.push(newVersion);
-    noteVersions.set(params.id, versions);
+    noteVersions.set(id, versions);
     
     // Keep only last 50 versions per note
     if (versions.length > 50) {
-      noteVersions.set(params.id, versions.slice(-50));
+      noteVersions.set(id, versions.slice(-50));
     }
     
     return NextResponse.json({

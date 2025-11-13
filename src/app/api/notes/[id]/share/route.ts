@@ -8,8 +8,9 @@ const shareLinks = new Map<string, { noteId: string; createdAt: Date; expiresAt?
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.email) {
@@ -23,7 +24,7 @@ export async function POST(
     const shareToken = crypto.randomBytes(32).toString('hex');
     
     const shareData: { noteId: string; createdAt: Date; expiresAt?: Date } = {
-      noteId: params.id,
+      noteId: id,
       createdAt: new Date(),
     };
     
@@ -49,8 +50,9 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.email) {

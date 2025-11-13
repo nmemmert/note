@@ -4,8 +4,9 @@ import { authOptions } from '@/lib/auth';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string; versionId: string } }
+  { params }: { params: Promise<{ id: string; versionId: string }> }
 ) {
+  const { id, versionId } = await params;
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.email) {
@@ -17,8 +18,8 @@ export async function POST(
     const versionsModule = await import('../route');
     const noteVersions = versionsModule.noteVersions;
     
-    const versions = noteVersions.get(params.id) || [];
-    const version = versions.find(v => v.id === params.versionId);
+    const versions = noteVersions.get(id) || [];
+    const version = versions.find(v => v.id === versionId);
     
     if (!version) {
       return NextResponse.json({ error: 'Version not found' }, { status: 404 });

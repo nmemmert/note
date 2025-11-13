@@ -8,15 +8,17 @@ const mockNotes = new Map();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
+  const { token } = await params;
+  
   try {
     // In production, fetch from database
     // For now, we'll need to dynamically import to avoid circular dependency
     const shareModule = await import('@/app/api/notes/[id]/share/route');
     shareLinks = shareModule.shareLinks;
     
-    const shareData = shareLinks.get(params.token);
+    const shareData = shareLinks.get(token);
     
     if (!shareData) {
       return NextResponse.json({ error: 'Share link not found or expired' }, { status: 404 });
@@ -24,7 +26,7 @@ export async function GET(
     
     // Check if link has expired
     if (shareData.expiresAt && shareData.expiresAt < new Date()) {
-      shareLinks.delete(params.token);
+      shareLinks.delete(token);
       return NextResponse.json({ error: 'Share link has expired' }, { status: 410 });
     }
     
