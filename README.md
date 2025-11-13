@@ -1,6 +1,8 @@
 # NoteMaster - Better Than UpNote
 
-A modern, powerful note-taking application built with Next.js, TypeScript, and Tailwind CSS. Designed to be better than UpNote with rich text editing, AI-powered features, multi-user authentication, and 6 beautiful themes.
+A modern, powerful note-taking application built with Next.js, TypeScript, and Tailwind CSS. Designed to be better than UpNote with rich text editing, AI-powered features, multi-user authentication, collaboration tools (v1.5.0), and 6 beautiful themes.
+
+**Current Version**: 1.5.0
 
 ## ✨ Features
 
@@ -29,10 +31,16 @@ A modern, powerful note-taking application built with Next.js, TypeScript, and T
 - � **Reading Mode** - Distraction-free reading
 - 📅 **Daily Notes** - Quick-capture daily thoughts
 
+### Collaboration Features (v1.5.0)
+- 🔗 **Share Links** - Generate secure shareable note links
+- 📧 **Email Invitations** - Invite collaborators via email
+- 📜 **Version Control** - Track and restore note versions
+- 🖼️ **Rich Media** - Embed images, videos, and files
+
 ### Help & Documentation
-- ❓ **In-App Help Center** - 20+ articles with search (Press '?')
+- ❓ **In-App Help Center** - 22+ articles with search (Press '?')
 - ⌨️ **Keyboard Shortcuts** - Comprehensive shortcut reference
-- � **Feature Guides** - Step-by-step tutorials
+- 📖 **Feature Guides** - Step-by-step tutorials
 
 ## 🚀 Quick Start
 
@@ -135,7 +143,60 @@ The update script automatically:
 - ✅ Restarts with zero downtime
 - ✅ Rolls back automatically if anything fails
 
+**Database Persistence**: Your database is **never deleted** during updates. All migrations are non-destructive.
+
 📖 **Full guide**: See [UPDATE.md](UPDATE.md)
+
+## 🛠️ Maintenance Scripts
+
+NoteMaster includes several utility scripts for administration and troubleshooting:
+
+### Check Database Users
+
+Inspect your database remotely to see user counts and statistics:
+
+```bash
+npm run check-users
+# or
+node scripts/check-users.js
+```
+
+Shows:
+- Total user count
+- Email addresses
+- Notebook and note counts per user
+- Database type (SQLite/PostgreSQL)
+
+### Environment Setup
+
+Interactive script to configure your `.env` file:
+
+```bash
+chmod +x scripts/setup-env.sh
+./scripts/setup-env.sh
+```
+
+Features:
+- Choose database type (SQLite or PostgreSQL)
+- Auto-generate secure NEXTAUTH_SECRET
+- Configure PostgreSQL connection details
+- Automatically run database migrations
+
+### Uninstall
+
+Safely remove NoteMaster with automatic backups:
+
+```bash
+chmod +x uninstall.sh
+./uninstall.sh
+```
+
+Features:
+- Creates final backup before removal
+- Stops all running processes (PM2)
+- Removes Nginx configuration
+- Optional database removal
+- Keeps all backups in `/var/backups/notemaster/`
 
 ## Usage
 
