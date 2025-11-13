@@ -1437,5 +1437,241 @@ function hello() {
       </ul>
     `
   },
+  // Administration & Maintenance
+  {
+    id: 'checking-database',
+    category: 'admin',
+    title: 'Checking Database Users',
+    description: 'How to inspect database users and statistics remotely',
+    icon: '🗄️',
+    keywords: ['database', 'users', 'admin', 'check', 'inspect', 'remote', 'statistics'],
+    relatedArticles: ['environment-setup', 'troubleshooting', 'uninstall'],
+    content: `
+      <h2>Checking Database Users</h2>
+      <p>NoteMaster includes a database inspection script to view user statistics and verify database connectivity.</p>
+
+      <h3>Running the Script</h3>
+      <p>Use either command to inspect your database:</p>
+      <pre><code>npm run check-users</code></pre>
+      <p>Or directly:</p>
+      <pre><code>node scripts/check-users.js</code></pre>
+
+      <h3>What It Shows</h3>
+      <ul>
+        <li><strong>Database Type:</strong> SQLite or PostgreSQL</li>
+        <li><strong>Total Users:</strong> Number of registered users</li>
+        <li><strong>User Details:</strong> Email addresses (partially hidden for privacy)</li>
+        <li><strong>Notebooks:</strong> Count of notebooks per user</li>
+        <li><strong>Notes:</strong> Count of notes per user</li>
+      </ul>
+
+      <h3>Remote Usage</h3>
+      <p>To check database on a remote server:</p>
+      <pre><code>ssh user@your-server
+cd ~/notemaster
+npm run check-users</code></pre>
+
+      <h3>Requirements</h3>
+      <ul>
+        <li>Node.js must be installed</li>
+        <li><code>.env</code> file must be configured</li>
+        <li>DATABASE_URL must be set correctly</li>
+        <li>Prisma client must be generated (<code>npx prisma generate</code>)</li>
+      </ul>
+
+      <h3>Troubleshooting</h3>
+      <p><strong>Error: "Cannot find module '@prisma/client'"</strong></p>
+      <pre><code>npm install
+npx prisma generate</code></pre>
+
+      <p><strong>Error: "DATABASE_URL not found"</strong></p>
+      <p>Run the environment setup script first:</p>
+      <pre><code>./scripts/setup-env.sh</code></pre>
+
+      <h3>Example Output</h3>
+      <pre><code>✓ Connected to PostgreSQL database
+✓ Found 2 users in database
+
+Users:
+  ✓ nat***@nec***.us
+    - Notebooks: 3
+    - Notes: 15
+  
+  ✓ tes***@exa***.com
+    - Notebooks: 0
+    - Notes: 0</code></pre>
+    `
+  },
+  {
+    id: 'environment-setup',
+    category: 'admin',
+    title: 'Environment Setup Script',
+    description: 'Interactive configuration of your NoteMaster environment',
+    icon: '⚙️',
+    keywords: ['environment', 'setup', 'config', 'env', 'database', 'configuration'],
+    relatedArticles: ['checking-database', 'installation', 'troubleshooting'],
+    content: `
+      <h2>Environment Setup Script</h2>
+      <p>The setup-env.sh script provides an interactive way to configure your NoteMaster installation.</p>
+
+      <h3>When to Use</h3>
+      <ul>
+        <li>Fresh installation without <code>.env</code> file</li>
+        <li>Switching between SQLite and PostgreSQL</li>
+        <li>Regenerating authentication secrets</li>
+        <li>Fixing configuration issues</li>
+        <li>Setting up on a new server</li>
+      </ul>
+
+      <h3>Running the Script</h3>
+      <pre><code>chmod +x scripts/setup-env.sh
+./scripts/setup-env.sh</code></pre>
+
+      <h3>Configuration Steps</h3>
+      <ol>
+        <li><strong>Database Selection:</strong> Choose SQLite (development) or PostgreSQL (production)</li>
+        <li><strong>PostgreSQL Details:</strong> If PostgreSQL, enter host, port, username, password, database name</li>
+        <li><strong>Secret Generation:</strong> Automatically generates secure NEXTAUTH_SECRET</li>
+        <li><strong>Migration:</strong> Runs database migrations automatically</li>
+      </ol>
+
+      <h3>SQLite Configuration</h3>
+      <p>Perfect for development or single-user installations:</p>
+      <ul>
+        <li>No external database required</li>
+        <li>Data stored in <code>prisma/dev.db</code></li>
+        <li>Zero configuration needed</li>
+        <li>Portable - just copy the .db file</li>
+      </ul>
+
+      <h3>PostgreSQL Configuration</h3>
+      <p>Recommended for production multi-user installations:</p>
+      <ul>
+        <li>Better performance with multiple users</li>
+        <li>Advanced query capabilities</li>
+        <li>Better backup and recovery options</li>
+        <li>Scalable for large deployments</li>
+      </ul>
+
+      <h3>Generated .env File</h3>
+      <p>The script creates a <code>.env</code> file with:</p>
+      <pre><code>DATABASE_URL="postgresql://user:pass@host:5432/db"
+NEXTAUTH_SECRET="randomly-generated-secret"
+NEXTAUTH_URL="http://localhost:3000"</code></pre>
+
+      <h3>After Setup</h3>
+      <p>Verify configuration works:</p>
+      <pre><code>npm run check-users</code></pre>
+
+      <h3>Security Notes</h3>
+      <ul>
+        <li>Never commit <code>.env</code> file to git</li>
+        <li>Use strong database passwords in production</li>
+        <li>Keep NEXTAUTH_SECRET secure and random</li>
+        <li>Change default ports if exposed to internet</li>
+      </ul>
+    `
+  },
+  {
+    id: 'uninstall',
+    category: 'admin',
+    title: 'Uninstalling NoteMaster',
+    description: 'Safely remove NoteMaster with automatic backups',
+    icon: '🗑️',
+    keywords: ['uninstall', 'remove', 'delete', 'backup', 'clean'],
+    relatedArticles: ['checking-database', 'environment-setup', 'installation'],
+    content: `
+      <h2>Uninstalling NoteMaster</h2>
+      <p>NoteMaster includes a comprehensive uninstall script that safely removes the application while preserving your data.</p>
+
+      <h3>Running the Uninstaller</h3>
+      <pre><code>chmod +x uninstall.sh
+./uninstall.sh</code></pre>
+
+      <h3>What Gets Removed</h3>
+      <ul>
+        <li><strong>PM2 Processes:</strong> Stops and removes notemaster-app</li>
+        <li><strong>Nginx Configuration:</strong> Removes reverse proxy config</li>
+        <li><strong>Application Files:</strong> Removes installation directory (optional)</li>
+        <li><strong>Database:</strong> Optionally removes database files</li>
+      </ul>
+
+      <h3>What's Preserved</h3>
+      <ul>
+        <li><strong>Final Backup:</strong> Created before any removal</li>
+        <li><strong>Previous Backups:</strong> Kept in <code>/var/backups/notemaster/</code></li>
+        <li><strong>Database (optional):</strong> You choose whether to keep or remove</li>
+      </ul>
+
+      <h3>Uninstall Process</h3>
+      <ol>
+        <li><strong>Confirmation:</strong> Type "yes" to proceed</li>
+        <li><strong>Backup:</strong> Creates final backup automatically</li>
+        <li><strong>Stop Services:</strong> Gracefully stops PM2 processes</li>
+        <li><strong>Remove Configs:</strong> Cleans up Nginx configuration</li>
+        <li><strong>Database Choice:</strong> Prompts whether to remove database</li>
+        <li><strong>Cleanup:</strong> Removes application files if confirmed</li>
+        <li><strong>Summary:</strong> Shows what was removed and backup location</li>
+      </ol>
+
+      <h3>Backup Location</h3>
+      <p>All backups are stored in:</p>
+      <pre><code>/var/backups/notemaster/backup-YYYYMMDD-HHMMSS.tar.gz</code></pre>
+
+      <h3>Restoring After Uninstall</h3>
+      <p>If you want to restore your data later:</p>
+      <pre><code># Extract backup
+cd /var/backups/notemaster
+tar -xzf backup-YYYYMMDD-HHMMSS.tar.gz
+
+# Reinstall NoteMaster
+git clone https://github.com/nmemmert/note.git
+cd note
+./install.sh
+
+# Restore database
+cp /var/backups/notemaster/backup-*/prisma/prod.db ~/notemaster/prisma/</code></pre>
+
+      <h3>Keeping Database Only</h3>
+      <p>To remove the app but keep the database:</p>
+      <ol>
+        <li>Run <code>./uninstall.sh</code></li>
+        <li>When asked "Remove database?", type "no"</li>
+        <li>Database remains in original location</li>
+        <li>Reinstall later and it will reconnect automatically</li>
+      </ol>
+
+      <h3>Complete Removal</h3>
+      <p>To remove everything including backups:</p>
+      <pre><code>./uninstall.sh
+# Choose "yes" for all prompts
+sudo rm -rf /var/backups/notemaster</code></pre>
+
+      <h3>Manual Cleanup (if needed)</h3>
+      <p>If the script fails, manually remove:</p>
+      <pre><code># Stop processes
+pm2 stop notemaster-app
+pm2 delete notemaster-app
+
+# Remove Nginx config
+sudo rm /etc/nginx/sites-available/notemaster
+sudo rm /etc/nginx/sites-enabled/notemaster
+sudo systemctl reload nginx
+
+# Remove app directory
+rm -rf ~/notemaster</code></pre>
+
+      <h3>Safety Features</h3>
+      <ul>
+        <li>✅ Multiple confirmation prompts</li>
+        <li>✅ Automatic backup before removal</li>
+        <li>✅ Color-coded output for clarity</li>
+        <li>✅ Preserves all previous backups</li>
+        <li>✅ Optional database retention</li>
+        <li>✅ Clear summary of actions taken</li>
+      </ul>
+    `
+  },
 ];
+
 
